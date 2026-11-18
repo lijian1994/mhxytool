@@ -250,6 +250,31 @@ def main():
         })()""")
         check("任务板：新增 + prompt 含规则", r and r.get("hasTitle") and r.get("hasRule") and r.get("hasExeRule"), r)
 
+        # 4) 交互式标注：开标注 → 点元素 → 填备注 → 保存 → 进 prompt
+        r = t.ev(r"""(function(){
+          var tabBtn = document.querySelector('#tabs button[data-t="shouyi"]');
+          if(tabBtn) tabBtn.click();
+          document.getElementById('annoBtn').click();
+          var target = document.querySelector('#shouyi .sy-big .k');
+          target.dispatchEvent(new MouseEvent('click', {bubbles:true, clientX:400, clientY:300}));
+          var opened = document.getElementById('annoPanel').classList.contains('on');
+          document.getElementById('annoNote').value = '这里要改成显示万两';
+          document.getElementById('annoSave').click();
+          var items = window.annoList ? window.annoList() : [];
+          var badges = document.querySelectorAll('.anno-badge').length;
+          document.getElementById('annoBtn').click();   // 先退出标注模式再点生成
+          document.getElementById('tk_gen').click();
+          var p = document.getElementById('tk_prompt').textContent || '';
+          return { opened: opened, count: items.length,
+                   note: items[0] && items[0].note, page: items[0] && items[0].page,
+                   sel: items[0] && items[0].sel, badges: badges,
+                   inPrompt: p.indexOf('页面标注') >= 0 && p.indexOf('这里要改成显示万两') >= 0,
+                   rows: document.querySelectorAll('.anno-row').length };
+        })()""")
+        check("标注：点元素加备注 → 气泡 + 清单 + prompt",
+              r and r.get("opened") and r.get("count") == 1 and r.get("badges") == 1
+              and r.get("inPrompt") and r.get("rows") == 1, r)
+
         # 4) 页签记忆：点任务进度 → 重新加载 → 仍在任务进度
         t.ev("document.querySelector('#tabs button[data-t=\"task\"]').click()")
         time.sleep(1.0)
