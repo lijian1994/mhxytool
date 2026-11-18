@@ -13,7 +13,8 @@ build/
   test_exe.py         用真实 exe 内核跑自检（会开窗口）
   smoke_tabs.py       无头 Edge 逐页签烟测（查渲染 / JS 异常）
   shots_tabs.py       无头 Edge 逐页签截图
-  _eval.py            无头 Edge 执行一段 JS 并打印结果（交互自检用）
+  _eval.py            无头 Edge 执行一段 JS 并打印结果（临时探针用）
+  selfcheck.py        无人值守交互自检（起 http 服务 + 无头 Edge，点控件并断言，7 项）
   edge_guard.py       无头 Edge 进程守卫（只清本工作区的配置目录）
   jscheck.py          页面内联脚本语法检查（node --check）
 ```
