@@ -1,0 +1,28 @@
+# 构建产物与临时文件
+shots/
+build/exe/_sdk/
+build/exe/out/
+build/exe/_probe/
+build/exe/_probe_cs/
+build/exe/payload.html
+build/exe/_ver.cs
+_archive/
+__pycache__/
+*.pyc
+*.log
+*.zstd
+
+# 二进制与压缩包
+*.exe
+*.dll
+*.ico
+*.nupkg
+*.zip
+
+# 本机数据（任务板 / 记账导出 / 备份）
+任务板.json
+收支记账.json
+*.bak
+
+# 游戏字符串 dump（7.5MB，本地生成，不进仓库）
+mhxy_gbk_strings.txt
