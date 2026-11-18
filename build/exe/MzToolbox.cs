@@ -659,7 +659,8 @@ namespace MzToolbox
             if (msg == null) return;
             if (msg.StartsWith("ST|")) result.TrySetResult(msg);
             else if (msg.StartsWith("SD|")) HandleScheduledAction(msg);
-            else if (msg.StartsWith("TB|save|")) SaveTaskBoard(msg.Substring(8));
+            else if (msg.StartsWith("TB|save|")) SaveTaskBoard(msg.Substring(8), false);
+            else if (msg.StartsWith("TBA|save|")) SaveTaskBoard(msg.Substring(9), true);
             else if (msg.StartsWith("LG|save|")) SaveLedgerFile(msg.Substring(8));
         }
 
@@ -786,7 +787,7 @@ namespace MzToolbox
         }
 
         // 任务板双写：除了页面里的 localStorage，再落一份 JSON 到 exe 目录，agent 可以直接读
-        private void SaveTaskBoard(string json)
+        private void SaveTaskBoard(string json, bool quiet)
         {
             try
             {
@@ -794,7 +795,7 @@ namespace MzToolbox
                 if (string.IsNullOrEmpty(dir)) dir = Boot.RootDir;
                 string path = Path.Combine(dir, "任务板.json");
                 File.WriteAllText(path, json, new UTF8Encoding(false));
-                NotifyPage("TBOK|已保存到 " + path);
+                if (!quiet) NotifyPage("TBOK|已保存到 " + path);
             }
             catch (Exception ex)
             {
