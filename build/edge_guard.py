@@ -30,7 +30,7 @@ try:                                   # 控制台是 936，但上层按 UTF-8 �
 except Exception:
     pass
 
-ROOT = r"F:\Documents\deepseek-harness\default-workspace"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = os.path.join(ROOT, "shots")
 
 # 只取「所有 msedge 进程的 pid/parent/是否无头/user-data-dir」，判定放到 Python 里做，

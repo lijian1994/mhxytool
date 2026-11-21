@@ -4,6 +4,8 @@
 它回答一个关键问题：**会不会误杀用户自己的 / 别的项目的 Edge？**
 用例全部是「不该动」的进程形态，任何一条失败都说明守卫的边界出了问题。
 
+路径全部从 edge_guard.ROOT 推导，所以复制到任何工作区都能跑。
+
 跑法：python build\\edge_guard_selftest.py   （退出码 0 = 全部通过）
 """
 import os
@@ -13,24 +15,30 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import edge_guard as g
 
+R = g.ROOT
+S = g.SHOTS
+R_FWD = R.replace("\\", "/")
+
 CASES = [
-    (r"F:\Documents\deepseek-harness\default-workspace\shots\preprof_9331", True, "本工作区(反斜杠)"),
-    ("F:/Documents/deepseek-harness/default-workspace/shots/_tmp_x", True, "本工作区(正斜杠)"),
-    (r"f:\documents\deepseek-harness\default-workspace\SHOTS\rtprof_a", True, "本工作区(大小写不同)"),
-    (r"F:\Documents\deepseek-harness\default-workspace\shots", True, "刚好是 shots 本身"),
-    (r'"F:\Documents\deepseek-harness\default-workspace\shots\preprof_1"', True, "带引号"),
+    (os.path.join(S, "preprof_9331"), True, "本工作区(反斜杠)"),
+    (R_FWD + "/shots/_tmp_x", True, "本工作区(正斜杠)"),
+    (S.upper() + "\\rtprof_a", True, "本工作区(大小写不同)"),
+    (S, True, "刚好是 shots 本身"),
+    ('"' + os.path.join(S, "preprof_1") + '"', True, "带引号"),
     (r"D:\work\myproj\.edge-headless", False, "别的项目"),
     ("", False, "无 user-data-dir（用户默认配置）"),
     (r"C:\Users\Administrator\AppData\Local\Temp\edge_prof_123", False, "别的项目用 %TEMP%"),
-    (r"F:\Documents\deepseek-harness\default-workspace\shots2\prof", False, "shots2 相似前缀"),
-    (r"F:\Documents\deepseek-harness\default-workspace\shots_old\prof", False, "shots_old 相似前缀"),
-    (r"F:\Documents\deepseek-harness\other-workspace\shots\prof", False, "另一个工作区的 shots"),
-    (r"F:\Documents\deepseek-harness\default-workspace\build", False, "本工作区但不是 shots"),
+    (S + "2\\prof", False, "shots2 相似前缀"),
+    (S + "_old\\prof", False, "shots_old 相似前缀"),
+    (os.path.join(os.path.dirname(R), "other-workspace", "shots", "prof"), False, "另一个工作区的 shots"),
+    (os.path.join(R, "build"), False, "本工作区但不是 shots"),
 ]
 
 
 def main():
     fails = 0
+    print("ROOT  = %s" % R)
+    print("SHOTS = %s" % S)
     print("=== 判定规则（is_own_profile）===")
     for d, want, note in CASES:
         got = g.is_own_profile(d)
@@ -41,7 +49,7 @@ def main():
     print("规则用例: %d/%d 通过" % (len(CASES) - fails, len(CASES)))
 
     rows = [{"pid": 1, "parent": 0, "headless": True,
-             "dir": r"F:\Documents\deepseek-harness\default-workspace\shots\a"},
+             "dir": os.path.join(S, "a")},
             {"pid": 2, "parent": 0, "headless": True, "dir": r"D:\work\myproj\prof"},
             {"pid": 3, "parent": 0, "headless": False, "dir": ""}]
     picked = [r["pid"] for r in g.filter_own(rows)]
@@ -71,7 +79,7 @@ def main():
               % (user_pid, ok, len(calls)))
         if ok or calls:
             fails += 1
-    g._dir_of = lambda pid: r"F:\Documents\deepseek-harness\default-workspace\shots\_x"
+    g._dir_of = lambda pid: os.path.join(S, "_x")
     ok2 = g.kill_if_ours(999999)
     print("kill_if_ours(本工作区 pid) = %s；kill_tree 收到 %s （应 True / [999999]）" % (ok2, calls))
     if not ok2 or calls != [999999]:
