@@ -1,11 +1,11 @@
 import csv, json, re, io, os
 
 BASE = r"F:\Documents\deepseek-harness\default-workspace"
-SHOTS = os.path.join(BASE, "shots")
+DATA = os.path.join(BASE, "data")
 OUT = os.environ.get("MZ_OUT") or r"F:\Desktop\梦幻西游工具\梦幻西游实用工具箱-复刻版.html"
 
 def read_csv(name):
-    with open(os.path.join(SHOTS, name), encoding="utf-8-sig") as f:
+    with open(os.path.join(DATA, name), encoding="utf-8-sig") as f:
         return list(csv.reader(f))
 
 
@@ -35,7 +35,7 @@ for row in read_csv("shimen.csv"):
             shi[n] = [int(row[1] or 0), int(row[2] or 0)]
 
 # 官方接口数据（优先）
-off = json.load(open(os.path.join(SHOTS, "official.json"), encoding="utf-8-sig"))
+off = json.load(open(os.path.join(DATA, "official.json"), encoding="utf-8-sig"))
 exp = off["exp"]
 shi = off["shimen"]
 LIFE = off["life"]
@@ -85,10 +85,10 @@ for r in task_rows:
 
 tpl = tpl.replace("{{TASK}}", json.dumps(TASK, ensure_ascii=False, separators=(",", ":")))
 tpl = tpl.replace("{{LIFE}}", json.dumps(LIFE, ensure_ascii=False, separators=(",", ":")))
-MP = json.load(open(os.path.join(SHOTS, "menpai.json"), encoding="utf-8-sig"))
-FURN = json.load(open(os.path.join(SHOTS, "furniture.json"), encoding="utf-8-sig"))
-NPCD = json.load(open(os.path.join(SHOTS, "npc_level.json"), encoding="utf-8-sig"))
-KEJU = json.load(open(os.path.join(SHOTS, "keju.json"), encoding="utf-8-sig"))
+MP = json.load(open(os.path.join(DATA, "menpai.json"), encoding="utf-8-sig"))
+FURN = json.load(open(os.path.join(DATA, "furniture.json"), encoding="utf-8-sig"))
+NPCD = json.load(open(os.path.join(DATA, "npc_level.json"), encoding="utf-8-sig"))
+KEJU = json.load(open(os.path.join(DATA, "keju.json"), encoding="utf-8-sig"))
 tpl = tpl.replace("{{KEJU}}", json.dumps(KEJU, ensure_ascii=False, separators=(",", ":")))
 tpl = tpl.replace("{{NPC}}", json.dumps(NPCD, separators=(",", ":")))
 tpl = tpl.replace("{{FURN}}", json.dumps(FURN, ensure_ascii=False, separators=(",", ":")))

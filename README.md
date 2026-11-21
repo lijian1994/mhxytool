@@ -119,7 +119,7 @@ exe 是一个 C# WebView2 外壳（`build\exe\MzToolbox.cs`），负责：
 ### 构建管线
 
 ```
-shots\*.csv（数据源）
+data\*.csv / data\*.json（数据源，进仓库）
       ↓  build\build.py 读表、算表、填模板
 build\template2.html（模板，含 {{EXP}} 等占位符）
       ↓  替换占位符
@@ -129,6 +129,17 @@ build\exe\out\...exe（exe 产物）
       ↓  --publish
 F:\Desktop\梦幻西游工具\...exe
 ```
+
+### 目录
+
+| 目录 | 作用 | 进仓库 |
+|---|---|---|
+| `data/` | 构建数据源：游戏数据表、科举题库、答题测试图 | ✅ |
+| `build/` | 源码模板、构建脚本、自检脚本、exe 构建与 SDK | ✅ |
+| `shots/` | 构建产物、截图、无头浏览器 profile | ❌ |
+| `tytask/` | 通用任务板库 | ✅ |
+
+`shots/` 被 `.gitignore` 排除，因为里面是产物和临时截图；`data/` 是构建的输入，必须跟着仓库走。
 
 ---
 

@@ -5,7 +5,7 @@
     python build\\verify_quiz_live.py [html路径]
 
 依赖:
-    shots\\quiz_seq\\q*.png   已统一的答题截图（812x663）
+    data\\quiz_seq\\q*.png   已统一的答题截图（812x663）
     build\\template2.html      页面源码
 
 它会：起本地 http 服务 → 无头 Edge → 把 grabFrame 换成「裁当前测试图的答题框」
@@ -27,7 +27,7 @@ except Exception:
 
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 HTML_REL = "shots/dist/梦幻西游实用工具箱-复刻版.html"
-SEQ_DIR = "shots/quiz_seq"
+SEQ_DIR = "data/quiz_seq"
 
 EXPECT = {
     "q1_guandang": "官当",
