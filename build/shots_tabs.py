@@ -32,8 +32,24 @@ p = subprocess.Popen([EDGE, "--headless=new", "--disable-gpu", "--hide-scrollbar
                       "--window-size=1300,900", "about:blank"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 atexit.register(lambda: kill_tree(p.pid))
-time.sleep(3.0)
-tg = json.load(urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json/list"))
+
+
+def wait_devtools(port, timeout=20.0):
+    """等调试端口就绪：新 profile 首次启动偶尔要 >3s，死等容易误判成没起来。"""
+    end = time.time() + timeout
+    last = None
+    while time.time() < end:
+        if p.poll() is not None:
+            raise SystemExit(f"Edge 启动后立刻退出（exit {p.poll()}），端口 {port} 没起来")
+        try:
+            return json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=2))
+        except Exception as e:
+            last = e
+            time.sleep(0.4)
+    raise SystemExit(f"等不到 Edge 调试端口 {port}：{last}")
+
+
+tg = wait_devtools(PORT)
 ws = [t for t in tg if t.get("type") == "page"][0]["webSocketDebuggerUrl"]
 host, port = ws.split("//")[1].split("/")[0].split(":")
 path = "/" + ws.split("//")[1].split("/", 1)[1]
@@ -129,6 +145,14 @@ time.sleep(0.4)
 print("scrollY=", ev("window.scrollY"), "tabsTop=", ev("document.getElementById('tabs').getBoundingClientRect().top"))
 send("Emulation.setDeviceMetricsOverride", {"width": 1300, "height": 760, "deviceScaleFactor": 1, "mobile": False})
 shot("_scrolled.png", full=False)
+
+# 浮窗计算器（键位改过，每次留一张）
+send("Emulation.setDeviceMetricsOverride", {"width": W, "height": 900, "deviceScaleFactor": 1, "mobile": False})
+ev("window.scrollTo(0,0)")
+ev("var b=document.getElementById('calcBtn'); if(b) b.click()")
+time.sleep(0.4)
+shot("_calc.png", full=False)
+ev("var b=document.getElementById('calcBtn'); if(b) b.click()")
 
 # 手机宽度
 send("Emulation.setDeviceMetricsOverride", {"width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": True})

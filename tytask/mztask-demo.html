@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mztask.js · 独立演示</title>
+<style>
+  html,body{margin:0;padding:0;background:#0f1320}
+  body{color:#e6ecff;font-family:"Microsoft YaHei",system-ui,sans-serif;padding:26px 18px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:17px;color:#e8c37a;margin:0 0 4px}
+  p.sub{color:#8b96b8;font-size:12.5px;margin:0 0 18px;line-height:1.8}
+  code{background:#1b2440;border:1px solid #26304f;border-radius:5px;padding:1px 6px;color:#9fb4ff;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>mztask.js · 独立演示</h1>
+  <p class="sub">
+    这个页面只做了两件事：引入 <code>mztask.js</code>，然后 <code>MZTask.mount('#demo')</code>。<br>
+    没有任何框架、没有构建、没有依赖。
+  </p>
+  <div id="demo"></div>
+</div>
+<script src="mztask.js"></script>
+<script>
+  var board = MZTask.mount('#demo', {
+    title: '演示任务',
+    storageKey: 'mztask.demo'
+  });
+  window.__board = board;
+</script>
+</body>
+</html>

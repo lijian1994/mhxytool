@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -536,8 +536,8 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r101</div>
-        <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置加备注">✏️ 标注</button>
+        <div class="ver">V5.3 · r128</div>
+        <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
       </div>
@@ -609,18 +609,15 @@ window.MZ3 = (function(){
   font-size:12.5px;cursor:pointer;user-select:none;font-family:inherit}
 #renwu .pane-btn.on{background:linear-gradient(180deg,#2f4a86,#25376a);border-color:#6f8ff5;color:#fff;font-weight:700}
 #renwu .pane-bar .sp{flex:1}
-#renwu .pane-bar .sortsel{background:#0f1320;border:1px solid var(--line);border-radius:8px;color:#cdd6f4;
-  font-size:12px;padding:5px 8px;font-family:inherit}
+#renwu .pane-reorder{color:var(--dim);font-size:11.5px;cursor:pointer;user-select:none;
+  padding:2px 7px;border-radius:6px;transition:.13s}
+#renwu .pane-reorder:hover{color:#fff;background:#1b2440}
 </style>
 <div class="pane-bar">
   <span class="pane-btn on" data-pane="renwu">常用查询</span>
   <span class="pane-btn" data-pane="gonglue">梦幻常识</span>
   <span class="sp"></span>
-  <span style="color:var(--dim);font-size:11.5px">排序</span>
-  <select class="sortsel" id="pane_sort">
-    <option value="default">默认</option>
-    <option value="usage">按使用频率</option>
-  </select>
+  <span class="pane-reorder" id="pane_reorder" title="点一下按最新使用次数重排；刷新页面或下次打开也会重排">↻ 按使用频率排序</span>
 </div>
 <div id="pane_renwu">
 <div class="pc-grid">
@@ -1023,14 +1020,7 @@ window.MZ3 = (function(){
 #gonglue .cbg-box{background:#1b2440;border:1px solid #2b3456;border-radius:8px;padding:10px 14px;margin-top:2px}
 #gonglue .cbg-p{margin:6px 0;font-size:13px;color:#e8c37a;line-height:1.9}
 #gonglue .cbg-p:before{content:"· ";color:#6f7fa8}
-#gonglue .gl-bar{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-#gonglue .gl-search{flex:1;max-width:300px;background:#121a2e;border:1px solid #2b3456;color:#e6ecff;
- border-radius:7px;padding:6px 11px;font-size:12.5px;font-family:inherit;outline:none}
-#gonglue .gl-search::placeholder{color:#5f6b8f}
-#gonglue .gl-search:focus{border-color:var(--accent)}
 </style>
-
-<div class="gl-bar"><input type="text" id="gl-search" class="gl-search" placeholder="搜攻略：副本 / NPC / 物品 / 经文…"></div>
 
 <div class="gl-mask" id="gl-mask"></div>
 
@@ -1188,18 +1178,6 @@ window.MZ3 = (function(){
     if ((e.key === 'Escape' || e.keyCode === 27) && openCard) closePanel();
   });
 
-  /* ---- 搜索过滤：按标题+内容关键词实时筛攻略卡 ---- */
-  var search = document.getElementById('gl-search');
-  if (search) search.addEventListener('input', function(){
-    closePanel();
-    var q = this.value.trim().toLowerCase();
-    var cards = root.querySelectorAll('.cg');
-    for (var k = 0; k < cards.length; k++) {
-      var hit = (q === '') || (cards[k].textContent.toLowerCase().indexOf(q) !== -1);
-      cards[k].style.display = hit ? '' : 'none';
-    }
-  });
-
   /* ---- 点击复制 ---- */
   function toast(msg){
     var t = root.querySelector('.gl-toast');
@@ -1270,19 +1248,16 @@ window.MZ3 = (function(){
         <div class="qwrap">
           <div class="grp">
             <div class="cap">截图搜题 <span class="tag web">实验</span></div>
-            <details class="note"><summary>说明</summary><div class="nb">① 点「选择窗口」选梦幻窗口（只需一次）② 默认用「车迟国」预设位置；<b>手动拖一次框就会按这个场景记住</b>，下次不用再拖 ③ 换题点「截屏搜题」或开「自动识别」。也能 Ctrl+V 粘贴截图。窗口越大识别越准。</div></details>
+            <details class="note"><summary>说明</summary><div class="nb">① 点「选择窗口」选梦幻窗口（只需一次）② 在画面上<b>拖框</b>，只框题目那几行；拖一次就会记住，下次自动用 ③ 换题点「截屏搜题」或开「自动识别」。也能 Ctrl+V 粘贴截图。窗口越大识别越准。</div></details>
             <div class="row">
               <button class="btn" onclick="pickWindow()">选择窗口</button>
-              <select id="shot_preset" onchange="onPresetChange()" class="shot-sel">
-                <option value="chichi">答题窗口：车迟国</option>
-                <option value="full">答题窗口：整个游戏窗口</option>
-                <option value="manual">答题窗口：手动框选</option>
-              </select>
               <button class="btn gray" onclick="grabAndSearch()">截屏搜题</button>
               <button class="btn gray" id="shot_auto" onclick="toggleAuto()">自动识别</button>
               <button class="btn gray" onclick="clearShotBox()">重选区域</button>
+              <button class="btn gray" onclick="resetQuizBase()">重置基色</button>
               <button class="btn gray" onclick="stopCapture()">停止</button>
               <span id="shot_state" class="qhint" style="margin:0">未选择窗口</span>
+              <span id="shot_base" class="qhint" style="margin:0"></span>
             </div>
             <div class="row" style="align-items:flex-start;gap:12px;flex-wrap:nowrap">
               <div id="shot_stage" class="shot-stage">
@@ -3165,6 +3140,11 @@ setTimeout(fitPanel,300);
 #shouyi .sy-in .lbl{color:var(--dim);font-size:12.5px;white-space:nowrap}
 #shouyi .sy-in input{width:108px;text-align:right;flex:0 0 auto}
 #shouyi .sy-in .u{color:var(--dim);font-size:11px;white-space:nowrap}
+#shouyi .al-tabs{display:inline-flex;gap:3px;background:#0f1320;border:1px solid var(--line);border-radius:8px;padding:3px}
+#shouyi .al-tab{background:transparent;border:1px solid transparent;color:#9fb0d6;border-radius:6px;
+  padding:3px 9px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.13s;line-height:1.5}
+#shouyi .al-tab:hover{color:#fff;border-color:#2b3456}
+#shouyi .al-tab.on{background:linear-gradient(180deg,#2f4a86,#25376a);border-color:#6f8ff5;color:#fff;font-weight:700}
 #shouyi .sy-tab{width:100%;table-layout:auto}
 #shouyi .sy-tab th,#shouyi .sy-tab td{padding:5px 8px;white-space:nowrap}
 #shouyi .sy-tab td:nth-child(1){white-space:normal}
@@ -3242,9 +3222,11 @@ setTimeout(fitPanel,300);
       <div class="sy-in" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
         <div class="f"><span class="lbl">次数</span><input id="al_n" type="number" min="1" step="1" placeholder="次"><span class="u">次</span></div>
         <div class="f"><span class="lbl">炼药方式</span>
-          <select id="al_method" style="width:96px;text-align:left;background:#0f1320;border:1px solid var(--line);border-radius:8px;color:#fff;padding:6px 8px;font-size:12.5px;font-family:inherit">
-            <option>2+2</option><option>3+1</option><option>4+0</option>
-          </select>
+          <span class="al-tabs" id="al_method">
+            <button type="button" class="al-tab on" data-m="2+2">2+2</button>
+            <button type="button" class="al-tab" data-m="3+1">3+1</button>
+            <button type="button" class="al-tab" data-m="4+0">4+0</button>
+          </span>
         </div>
         <div class="f"><span class="lbl">三药产出</span><input id="al_n3" type="number" min="0" step="1" placeholder="个"><span class="u">个</span></div>
         <div class="f"><button class="btn" id="al_add" style="padding:6px 16px">记一次</button></div>
@@ -3252,11 +3234,19 @@ setTimeout(fitPanel,300);
       <div id="al_now" class="sy-note" style="margin-top:6px">本次：还没记录。金创药 = 次数 − 三药；成本按配方自动算（二药 0.15 万/个，一药不计）。</div>
       <div class="scroll" style="max-height:none;margin-top:8px">
         <table class="sy-tab">
-          <thead><tr><th style="width:110px">维度</th><th>次数</th><th>三药</th><th>金创</th><th>成功率</th><th>成本（万）</th><th>收益（万）</th></tr></thead>
-          <tbody id="al_body"><tr><td colspan="7" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr></tbody>
+          <thead><tr><th style="width:118px">维度</th><th style="width:74px">方式</th><th>次数</th><th>三药</th><th>金创</th><th>成功率</th><th title="按记录的炼药方式算：2+2 = 0.30、3+1 = 0.45、4+0 = 0.60 万/次">成本（万）</th><th title="三药 × 三药单价 + 金创 × 金创单价 − 成本；单价取 ① 里当前填的值">收益（万）</th></tr></thead>
+          <tbody id="al_body"><tr><td colspan="8" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr></tbody>
         </table>
       </div>
-      <div class="sy-note" style="margin-top:6px">本月有记录时，① 里的「炼药成功率」自动取本月加权平均。</div>
+      <div class="sy-note" style="margin-top:6px">按天列出最近 7 个有炼药记录的日子，倒序；没记录的日子跳过。本月有记录时，① 里的「炼药成功率」自动取本月加权平均。</div>
+      <div class="cap" style="margin:14px 0 6px">按炼药方式对比 <span class="tag ok">累计</span></div>
+      <div class="scroll" style="max-height:none">
+        <table class="sy-tab">
+          <thead><tr><th style="width:104px">方式</th><th>次数</th><th>三药</th><th>成功率</th><th title="按记录的次数比例把当天三药拆到各方式；一天只打一种方式时是精确值">成本（万）</th><th title="（材料成本 − 金创药价值）÷ 三药个数，越低越划算">每个三药净成本</th><th>收益（万）</th></tr></thead>
+          <tbody id="al_body_method"><tr><td colspan="7" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr></tbody>
+        </table>
+      </div>
+      <div class="sy-note" style="margin-top:6px">「每个三药净成本」= 材料成本扣掉金创药卖价后，摊到每个三药上；比较哪种炼药方式划算看这一列。</div>
     </div>
   </div>
 
@@ -3341,6 +3331,21 @@ setTimeout(fitPanel,300);
   function f2(n){ if(n === null || n === undefined || !isFinite(n)) return '—'; return (Math.round(n * 100) / 100).toFixed(2); }
   function data(){ return MZ3.read(KEY) || { months: {} }; }
   function save(d){ MZ3.write(KEY, d); }
+  /* 炼药方式记忆：上次用哪种就回填，别每次重开都跳回 2+2 */
+  function savedMethod(){ const d = data(); return (d && d.method) || ''; }
+  function rememberMethod(m){ const d = data(); d.months = d.months || {}; d.method = m; save(d); }
+  /* 炼药方式选项卡：点哪个就是哪个，并立刻存下来 */
+  let AL_METHOD = '2+2';
+  function setMethod(m, persist){
+    AL_METHOD = m || '2+2';
+    const host = $('al_method');
+    if(host){
+      Array.prototype.forEach.call(host.querySelectorAll('.al-tab'), function(b){
+        b.classList.toggle('on', b.getAttribute('data-m') === AL_METHOD);
+      });
+    }
+    if(persist) rememberMethod(AL_METHOD);
+  }
   function ymd(dt){ return dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2) + '-' + ('0' + dt.getDate()).slice(-2); }
   function ym(dt){ return dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2); }
   function prune(d){
@@ -3349,10 +3354,15 @@ setTimeout(fitPanel,300);
     return d;
   }
   function prices(){
-    return {
-      p3: parseFloat(($('sy_p3') || {}).value) || 0,
-      pjc: parseFloat(($('sy_pjc') || {}).value) || 0
-    };
+    function num(id){
+      const el = $(id);
+      if(!el) return null;
+      const v = (el.value || '').trim();
+      if(v === '') return null;          // 还没填就是「不知道」，别当成 0
+      const n = Number(v);
+      return isFinite(n) ? n : null;
+    }
+    return { p3: num('sy_p3'), pjc: num('sy_pjc') };
   }
   function sumRange(days, fromKey, toKey){
     const out = { n: 0, n3: 0, njc: 0, cost: 0, income: 0, days: 0 };
@@ -3362,6 +3372,15 @@ setTimeout(fitPanel,300);
       out.n += r.n || 0; out.n3 += r.n3 || 0; out.njc += r.njc || 0;
       out.cost += r.cost || 0; out.income += r.income || 0;
       out.days += 1;
+    });
+    return out;
+  }
+  /* 把各月的 days 摊平成一张日期表：本周起点在上个月时，上月最后几天也要算进本周合计 */
+  function daysOfMonths(months){
+    const out = {};
+    Object.keys(months || {}).forEach(function(k){
+      const dd = (months[k] || {}).days || {};
+      Object.keys(dd).forEach(function(dk){ out[dk] = dd[dk]; });
     });
     return out;
   }
@@ -3381,13 +3400,18 @@ setTimeout(fitPanel,300);
 
     const p = prices();
     const njc = n - n3;
-    const cost = n * methodCost($('al_method').value);
+    const cost = n * methodCost(AL_METHOD);
     const income = n3 * p.p3 + njc * p.pjc;
     const rec = d.months[mk].days[dk] || { n: 0, n3: 0, njc: 0, cost: 0, income: 0, methods: {} };
     rec.n += n; rec.n3 += n3; rec.njc += njc; rec.cost += cost; rec.income += income;
     rec.methods = rec.methods || {};
-    const m = $('al_method').value;
+    const m = AL_METHOD;
     rec.methods[m] = (rec.methods[m] || 0) + n;
+    /* 按方式分开记：次数和三药都存，这样拆方式时是真实值，不用按比例摊 */
+    rec.byMethod = rec.byMethod || {};
+    const bm = rec.byMethod[m] || { n: 0, n3: 0 };
+    bm.n += n; bm.n3 += n3;
+    rec.byMethod[m] = bm;
     d.months[mk].days[dk] = rec;
     save(prune(d));
 
@@ -3409,47 +3433,191 @@ setTimeout(fitPanel,300);
     const weekFrom = ymd(monday);
 
     const today = sumRange(days, todayKey, todayKey);
-    const week = sumRange(days, weekFrom, todayKey);
+    const week = sumRange(daysOfMonths(d.months), weekFrom, todayKey);
     const mon = sumRange(days, mk + '-01', mk + '-31');
 
     function rate(r){ return r.n > 0 ? f2(r.n3 / r.n * 100) + '%' : '—'; }
-    function avg(r, v){ return r.days > 0 ? f2(v / r.days) : '—'; }
+
+    /* 收益一律按 ① 里当前填的单价重算：三药×三药单价 + 金创×金创单价 − 记录的成本。
+       不用当初记账时存下的 income（改价后那笔就过期了）。 */
+    const P = prices();
+    function netOf(r){
+      if(P.p3 === null || P.pjc === null) return null;   // 单价没填就先显示 —，别算出个负数
+      const n3 = Number(r.n3) || 0, njc = Number(r.njc) || 0, cost = Number(r.cost) || 0;
+      return n3 * P.p3 + njc * P.pjc - cost;
+    }
 
     const rows = [];
-    function push(label, r){
-      rows.push('<tr><td>' + label + '</td>'
-        + '<td class="v">' + (r.n || 0) + '</td>'
-        + '<td class="v">' + (r.n3 || 0) + '</td>'
-        + '<td class="v">' + (r.njc || 0) + '</td>'
-        + '<td class="v">' + rate(r) + '</td>'
-        + '<td class="v">' + f2(r.cost) + '</td>'
-        + '<td class="v">' + f2(r.income - r.cost) + '</td></tr>');
+    /* 一天有多种方式时，日期只出现一次（rowspan），方式各占一行 */
+    function pushRows(label, items){
+      items.forEach(function(it, i){
+        const r = it.r;
+        rows.push('<tr>'
+          + (i === 0
+              ? '<td rowspan="' + items.length + '" style="vertical-align:top">' + label + '</td>'
+              : '')
+          + '<td class="v" style="text-align:center">' + (it.method || '—') + '</td>'
+          + '<td class="v">' + (r.n || 0) + '</td>'
+          + '<td class="v">' + Math.round(r.n3 || 0) + '</td>'
+          + '<td class="v">' + Math.round(r.njc || 0) + '</td>'
+          + '<td class="v">' + rate(r) + '</td>'
+          + '<td class="v">' + f2(r.cost) + '</td>'
+          + '<td class="v">' + f2(netOf(r)) + '</td></tr>');
+      });
     }
-    if(week.n) push('本周合计', week);
-    if(mon.n) push('本月合计', mon);
-    if(today.n) push('今天', today);
-    if(week.n) push('本周日均', { n: avg(week, week.n), n3: avg(week, week.n3), njc: avg(week, week.njc),
-      cost: avg(week, week.cost), income: avg(week, week.income), days: 1 });
-    if(mon.n) push('本月日均', { n: avg(mon, mon.n), n3: avg(mon, mon.n3), njc: avg(mon, mon.njc),
-      cost: avg(mon, mon.cost), income: avg(mon, mon.income), days: 1 });
+    /* 最近 7 个有炼药记录的日子，逐日列出（倒序）；没记录的日子跳过 */
+    const allDays = daysOfMonths(d.months);
+    const recentKeys = Object.keys(allDays).filter(function(k){
+      const r = allDays[k];
+      return r && (r.n || 0) > 0;
+    }).sort().reverse().slice(0, 7);
+
+    if(week.n) pushRows('本周合计', [{ method: '混合', r: week }]);
+    if(mon.n) pushRows('本月合计', [{ method: '混合', r: mon }]);
+    recentKeys.forEach(function(k){
+      const r = allDays[k];
+      const md = k.slice(5);                       /* 11-19 */
+      const lab = (k === todayKey)
+        ? md + ' <span style="color:var(--gold);font-size:10.5px;font-weight:400">今天</span>'
+        : md;
+      const bm = (r && r.byMethod) || {};
+      const bkeys = Object.keys(bm).filter(function(m){ return bm[m] && bm[m].n > 0; });
+      if(bkeys.length){
+        /* 有按方式的真实记录：直接拆，不做任何比例分摊 */
+        pushRows(lab, bkeys.map(function(m){
+          return {
+            method: m,
+            r: {
+              n: bm[m].n,
+              n3: bm[m].n3,
+              njc: bm[m].n - bm[m].n3,
+              cost: methodCost(m) * bm[m].n
+            }
+          };
+        }));
+        return;
+      }
+      const ms = (r && r.methods) || {};
+      const mlist = Object.keys(ms).filter(function(m){ return (ms[m] || 0) > 0; });
+      if(mlist.length <= 1){
+        pushRows(lab, [{ method: mlist[0] || '', r: r }]);
+        return;
+      }
+      /* 老记录是混打的、但没存分方式的三药：不拆也不摊，整行标「混合」，数字用当天真实总数 */
+      pushRows(lab, [{ method: '混合', r: r }]);
+    });
 
     const body = $('al_body');
-    if(!rows.length) body.innerHTML = '<tr><td colspan="7" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr>';
+    if(!rows.length) body.innerHTML = '<tr><td colspan="8" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr>';
     else body.innerHTML = rows.join('');
+
+    /* 按炼药方式对比：优先用按方式记录的真实值；老数据单方式日整天归它；混打又没分方式记录的计到「混合」 */
+    const mAcc = {};
+    Object.keys(allDays).forEach(function(k){
+      const r = allDays[k];
+      if(!(r.n > 0)) return;
+      const bm = r.byMethod || {};
+      const bkeys = Object.keys(bm).filter(function(m){ return bm[m] && bm[m].n > 0; });
+      if(bkeys.length){
+        bkeys.forEach(function(m){
+          const a = mAcc[m] || (mAcc[m] = { n: 0, n3: 0, njc: 0, cost: 0 });
+          a.n += bm[m].n;
+          a.n3 += bm[m].n3;
+          a.njc += bm[m].n - bm[m].n3;
+          a.cost += methodCost(m) * bm[m].n;
+        });
+        return;
+      }
+      const ms = r.methods || {};
+      const list = Object.keys(ms).filter(function(m){ return (ms[m] || 0) > 0; });
+      if(!list.length) return;
+      if(list.length === 1){
+        const m = list[0];
+        const a = mAcc[m] || (mAcc[m] = { n: 0, n3: 0, njc: 0, cost: 0 });
+        a.n += ms[m] || 0;
+        a.n3 += r.n3 || 0;
+        a.njc += r.njc || 0;
+        a.cost += methodCost(m) * (ms[m] || 0);
+        return;
+      }
+      /* 混打但没分方式记录：次数和总数进「混合」，不往各方式里猜 */
+      const a = mAcc['混合'] || (mAcc['混合'] = { n: 0, n3: 0, njc: 0, cost: 0 });
+      list.forEach(function(m){
+        a.n += ms[m] || 0;
+        a.cost += methodCost(m) * (ms[m] || 0);
+      });
+      a.n3 += r.n3 || 0;
+      a.njc += r.njc || 0;
+    });
+    const METHOD_ORDER = ['2+2', '3+1', '4+0'];
+    const mKeys = METHOD_ORDER.filter(function(m){ return mAcc[m]; })
+      .concat(Object.keys(mAcc).filter(function(m){ return METHOD_ORDER.indexOf(m) < 0; }));
+    const mbody = $('al_body_method');
+    if(mbody){
+      if(!mKeys.length){
+        mbody.innerHTML = '<tr><td colspan="7" style="color:var(--dim);font-size:12px">还没有炼药记录</td></tr>';
+      }else{
+        mbody.innerHTML = mKeys.map(function(m){
+          const a = mAcc[m];
+          const mrate = a.n > 0 ? f2(a.n3 / a.n * 100) + '%' : '—';
+          /* 每个三药净成本 = (材料成本 − 金创药价值) ÷ 三药个数 */
+          const netCost = (a.n3 > 0 && P.pjc !== null)
+            ? f2((a.cost - a.njc * P.pjc) / a.n3) : '—';
+          return '<tr><td>' + m + '</td>'
+            + '<td class="v">' + a.n + '</td>'
+            + '<td class="v">' + Math.round(a.n3 || 0) + '</td>'
+            + '<td class="v">' + mrate + '</td>'
+            + '<td class="v">' + f2(a.cost) + '</td>'
+            + '<td class="v">' + netCost + '</td>'
+            + '<td class="v">' + f2(netOf(a)) + '</td></tr>';
+        }).join('');
+      }
+    }
 
     /* 回填①：成功率取本月加权平均，成本取当前配方 */
     const rateVal = mon.n > 0 ? Math.round(mon.n3 / mon.n * 1000) / 10 : 50;
     const rateEl = $('sy_rate'), costEl = $('sy_cost');
     if(rateEl) rateEl.value = rateVal;
-    if(costEl) costEl.value = methodCost($('al_method').value);
+    if(costEl) costEl.value = methodCost(AL_METHOD).toFixed(2);
     const rv = $('sy_rate_view'); if(rv) rv.textContent = rateVal.toFixed(1) + '%';
-    const cv = $('sy_cost_view'); if(cv) cv.textContent = methodCost($('al_method').value).toFixed(2);
+    const cv = $('sy_cost_view'); if(cv) cv.textContent = methodCost(AL_METHOD).toFixed(2);
     if(window.syCalc) syCalc();
   }
 
   $('al_add').addEventListener('click', add);
-  $('al_method').addEventListener('change', function(){ render(); });
+  /* 选项卡：点一下切换 + 立刻存，成本视图跟着变 */
+  const methodHost = $('al_method');
+  if(methodHost) methodHost.addEventListener('click', function(e){
+    const b = e.target.closest('.al-tab');
+    if(!b) return;
+    setMethod(b.getAttribute('data-m'), true);
+    render();
+  });
+  /* ① 里改单价，② 的收益立刻跟着重算（原来只刷新 ③，表要等下次记一笔才动） */
+  ['sy_p3','sy_pjc'].forEach(function(id){
+    const el = $(id);
+    if(el) el.addEventListener('input', function(){ render(); });
+  });
   window.alRender = render;
+  window.__alWeekSumOf = function(months, from, to){ return sumRange(daysOfMonths(months), from, to); };
+  /* 一次性补数据：2026-11-21 那天当时只存了分方式次数、没存分方式三药。
+     用户确认 4+0 那 6 次出了 3 个三药，其余 27 个归 3+1（70 次）。补完就精确，不用再猜。 */
+  (function repair1121(){
+    const dd = MZ3.read('alchemy');
+    if(!dd || !dd.months) return;
+    const day = ((dd.months['2026-11'] || {}).days || {})['2026-11-21'];
+    if(!day || day.byMethod) return;
+    const ms = day.methods || {};
+    if(day.n === 76 && day.n3 === 30 && ms['4+0'] === 6 && ms['3+1'] === 70){
+      day.byMethod = { '4+0': { n: 6, n3: 3 }, '3+1': { n: 70, n3: 27 } };
+      save(dd);
+    }
+  })();
+  /* 打开页面先回填上次的炼药方式，再渲染（成本视图按回填后的配方算） */
+  (function restoreMethod(){
+    const m = savedMethod();
+    setMethod(m === '3+1' || m === '4+0' ? m : '2+2', false);
+  })();
   render();
 })();
 </script>
@@ -3862,15 +4030,65 @@ setTimeout(fitPanel,300);
 #task .tk-row .t{color:#fff;font-weight:600;font-size:13px}
 #task .tk-row.done .t{color:#8fd8b3;text-decoration:line-through}
 #task .tk-row .d{color:var(--dim);font-size:12px;white-space:pre-wrap;margin-top:3px;line-height:1.65}
+#task .tk-row .fx{margin-top:6px;font-size:12px;line-height:1.7;white-space:pre-wrap;
+  color:#b9cbff;background:rgba(111,143,245,.08);border-left:2px solid #4f6fb8;
+  border-radius:0 6px 6px 0;padding:6px 9px}
+#task .tk-row .fx b{color:#8fa8ff;font-weight:600}
+#task .tk-row .fx.cause{color:#e6c98a;background:rgba(232,195,122,.07);border-left-color:#b8863a}
+#task .tk-row .fx.cause b{color:#e8c37a}
+#task .tk-row .fx.empty{color:#6f7a99;background:transparent;border-left-color:#2b3456;font-style:italic}
+#tkFixMask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:center;justify-content:center;z-index:9990}
+#tkFixMask.on{display:flex}
+.tk-fix-box{width:min(560px,92vw);max-height:90vh;overflow:auto;background:#151d33;border:1px solid #2b3456;
+  border-radius:12px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.tk-fix-h{font-size:13px;color:var(--gold);font-weight:700;margin-bottom:8px}
+.tk-fix-lbl{font-size:11.5px;color:#8b96b8;margin:8px 0 4px}
+.tk-fix-box textarea{width:100%;box-sizing:border-box;min-height:78px;background:#0f1320;
+  border:1px solid var(--line);border-radius:8px;color:#cdd6f4;padding:9px;font-size:12.5px;
+  font-family:inherit;line-height:1.7;resize:vertical}
+.tk-fix-box textarea:focus{outline:none;border-color:#6f8ff5}
+.tk-fix-b{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 #task .tk-row .meta{color:#6f7a99;font-size:11px;margin-top:4px}
 #task .tk-row .ops{display:flex;gap:5px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;max-width:150px}
 #task .tk-row .ops button{padding:4px 9px;font-size:11.5px;border-radius:7px;cursor:pointer;border:1px solid var(--line);
   background:#1b2440;color:#cdd6f4;font-family:inherit}
 #task .tk-row .ops button:hover{border-color:#6f8ff5}
 #task .tk-empty{color:var(--dim);font-size:12px;padding:4px 2px 2px}
+/* 进行中 / 待办 / 已解决 三组分开：标题固定，各自的列表限高各自滚 */
+#task .tk-sec{margin:0 0 10px}
+#task .tk-sec:last-child{margin-bottom:0}
+#task .tk-sec-h{color:#9fb0d8;font-weight:700;font-size:12px;margin:4px 0 6px}
+#task .tk-sec-list{max-height:340px;overflow-y:auto;overflow-x:hidden;padding-right:6px}
+/* 历史进度整块限高（约 4 条） */
+#task .tk-scroll{max-height:372px;overflow-y:auto;overflow-x:hidden;padding-right:6px}
+#task .tk-scroll::-webkit-scrollbar,
+#task .tk-sec-list::-webkit-scrollbar{width:8px}
+#task .tk-scroll::-webkit-scrollbar-track,
+#task .tk-sec-list::-webkit-scrollbar-track{background:transparent}
+#task .tk-scroll::-webkit-scrollbar-thumb,
+#task .tk-sec-list::-webkit-scrollbar-thumb{background:#2b3456;border-radius:4px}
+#task .tk-scroll::-webkit-scrollbar-thumb:hover,
+#task .tk-sec-list::-webkit-scrollbar-thumb:hover{background:#3d486e}
 #task .tk-prompt{width:100%;box-sizing:border-box;min-height:170px;background:#0f1320;border:1px solid var(--line);
   border-radius:9px;color:#cdd6f4;padding:10px;font-size:12px;line-height:1.65;white-space:pre-wrap;
-  font-family:Consolas,"Microsoft YaHei",monospace;margin:0}
+  font-family:Consolas,"Microsoft YaHei",monospace;margin:0;resize:vertical}
+#task .tk-prompt:focus{outline:none;border-color:#6f8ff5;box-shadow:0 0 0 3px rgba(111,143,245,.14)}
+#task .tk-tpl{margin-top:10px;border-top:1px dashed #26304f;padding-top:8px}
+#task .tk-tpl summary{cursor:pointer;color:var(--dim);font-size:12px;user-select:none;list-style:none}
+#task .tk-tpl summary::-webkit-details-marker{display:none}
+#task .tk-tpl summary:before{content:"▸ ";color:#6f7fa8}
+#task .tk-tpl[open] summary:before{content:"▾ "}
+#task .tk-tpl summary:hover{color:#fff}
+#task .tk-tpl-hint{font-size:11.5px;color:var(--dim);line-height:1.9;margin:7px 0 6px}
+#task .tk-tpl-hint code{background:#0f1320;border:1px solid var(--line);border-radius:4px;
+  padding:1px 5px;color:#9fb4ff;font-size:11px;font-family:Consolas,monospace}
+#task .tk-tpl-ta{min-height:230px;font-size:12px}
+#task .tk-tpl-ta.unsaved{border-color:#b8863a}
+#tk_toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);background:#1b2440;
+  border:1px solid #4f6fb8;color:#eaf0ff;padding:9px 16px;border-radius:10px;font-size:12.5px;z-index:9995;
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+#tk_toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #task .tk-note{color:var(--dim);font-size:11.5px}
 .tk-webnote{background:rgba(232,180,95,.08);border:1px solid rgba(232,180,95,.35);border-radius:9px;
   padding:7px 11px;font-size:12px;color:#d8c9a8;margin-bottom:10px}
@@ -3904,13 +4122,7 @@ setTimeout(fitPanel,300);
 
 <div class="grp" style="margin-top:12px">
   <div class="cap">历史进度 <span class="tag ok">按完成日期</span></div>
-  <div id="tk_hist"></div>
-</div>
-
-<div class="grp" style="margin-top:12px">
-  <div class="cap">页面标注 <span class="tag ok">点顶栏「✏️ 标注」添加</span></div>
-  <div class="anno-list" id="anno_list"></div>
-  <div class="sy-note" style="margin-top:8px">标注会一起写进「生成 prompt」，agent 能按选择器直接定位到元素。</div>
+  <div id="tk_hist" class="tk-scroll"></div>
 </div>
 
 <div class="grp">
@@ -3923,7 +4135,34 @@ setTimeout(fitPanel,300);
     <input type="file" id="tk_file" accept=".json,application/json" style="display:none">
     <span class="tk-note">只带「进行中 + 待办」，已解决的不进 prompt</span>
   </div>
-  <pre id="tk_prompt" class="tk-prompt">点「生成 prompt」，会得到一段可以直接丢给任何 agent 的需求清单（含"先同步计划/风险/建议再执行"的规则）。</pre>
+  <textarea id="tk_prompt" class="tk-prompt" spellcheck="false" placeholder="点「生成 prompt」，会得到一段可以直接丢给任何 agent 的需求清单（含「先同步计划/风险/建议再执行」的规则）。生成后可以直接在这里改，复制时带走的是你改过的文本。"></textarea>
+  <details class="tk-tpl" id="tk_tpl_box">
+    <summary>prompt 模板（可编辑）</summary>
+    <div class="tk-tpl-hint">
+      这里是<b>整份模板</b>（不是只加一段）：改动会整段生效，别把不想要的部分删掉。<br>
+      占位符：<code>{count}</code> 任务条数 · <code>{tasks}</code> 任务清单 · <code>{rules}</code> 插入内置规则段（默认模板已写成明文，可不加）。
+      改完自动保存，以后点「生成 prompt」都用这份。
+    </div>
+    <textarea id="tk_tpl" class="tk-prompt tk-tpl-ta" spellcheck="false"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+      <button class="btn gray" id="tk_tpl_reset">恢复默认模板</button>
+      <span class="tk-note" id="tk_tpl_state"></span>
+    </div>
+  </details>
+</div>
+
+<div id="tkFixMask">
+  <div class="tk-fix-box">
+    <div class="tk-fix-h">标记为已解决 · <span id="tkFixTitle"></span></div>
+    <div class="tk-fix-lbl">问题原因</div>
+    <textarea id="tkCauseText" placeholder="为什么会出这个问题：根因是什么，不是表面现象"></textarea>
+    <div class="tk-fix-lbl">解决方案</div>
+    <textarea id="tkFixText" placeholder="怎么改的：动了哪个文件/函数，机制上怎么改的，怎么验证的"></textarea>
+    <div class="tk-fix-b">
+      <button class="btn" id="tkFixOk">保存</button>
+      <button class="btn gray" id="tkFixSkip">先不写</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -3942,6 +4181,64 @@ setTimeout(fitPanel,300);
     '- 不得删除或覆盖用户数据，旧 localStorage 键保留；',
     '- 每次改完跑自检并截图。'
   ].join('\n');
+
+  /* prompt 模板：页面上可改。默认模板把规则写成明文，打开就能看到全部；
+     {count} / {tasks} 是动态占位符，{rules} 仍可用（插入内置规则段） */
+  const DEFAULT_TPL = [
+    '你是「小建哥的工具箱」这个项目的开发 agent。下面是当前要做的事，请按规则处理。',
+    '',
+    '执行规则（重要）：',
+    '1. 先复述你的实施计划（分步骤）；',
+    '2. 说明风险点：会动到哪些文件/功能，数据会不会受影响；',
+    '3. 提 1-3 条你认为更好的改进建议；',
+    '4. 等我确认后再动手，不要直接改代码。',
+    '',
+    '项目约束：',
+    '- 改动先在 HTML 版做，用无头浏览器自检（build\\smoke_tabs.py / shots_tabs.py）确认；',
+    '- 除非用户明确说「编译进 exe」或确实必须发版，不要执行 make_exe.py --publish（exe 自检会弹窗，影响用户玩游戏）；',
+    '- 关机只走 shutdown.exe，不使用系统函数关机；',
+    '- 不得删除或覆盖用户数据，旧 localStorage 键保留；',
+    '- 每次改完跑自检并截图。',
+    '',
+    '改任何问题先横向排查：这个毛病在哪些地方会出现，一次列全，不只看报的这一处。',
+    '有共性 → 找结构性根因，在机制层一次修掉，再回头逐个验证列出来的每一处；',
+    '确实只此一处 → 单独打补丁，并写明为什么它是局部的、为什么不动机制。',
+    '',
+    '当前任务清单（共 {count} 条）：',
+    '{tasks}',
+    '',
+    '完成一条就把它的状态改成已解决，并把新的问题/需求继续记在任务板里。'
+  ].join('\n');
+
+  function getTpl(){
+    const d = data();
+    const t = d && d.promptTpl;
+    return (t && String(t).trim()) ? String(t) : DEFAULT_TPL;
+  }
+  function setTpl(v){
+    const d = data();
+    if(v && String(v).trim() && v !== DEFAULT_TPL) d.promptTpl = v;
+    else delete d.promptTpl;
+    /* 模板只落 localStorage，不惊动 exe 的任务板落盘消息 */
+    MZ3.write(KEY, d);
+  }
+  function syncTplBox(){
+    const el = $('tk_tpl');
+    const t = getTpl();
+    if(el) el.value = t;
+    const st = $('tk_tpl_state');
+    if(!st) return;
+    const miss = [];
+    if(t.indexOf('{tasks}') < 0) miss.push('{tasks}');
+    if(t.indexOf('{rules}') < 0) miss.push('{rules}');
+    if(miss.length){
+      st.textContent = '⚠ 模板里没有 ' + miss.join(' / ') + '，生成时这部分不会出现';
+      st.style.color = '#e0a34a';
+    }else{
+      st.textContent = (data().promptTpl ? '已自定义 · 自动保存' : '正在用默认模板');
+      st.style.color = '';
+    }
+  }
 
   const GROUP = { doing: '进行中', todo: '待办', done: '已解决' };
   const FLAG = { doing: '进行中', todo: '待办', done: '✓ 已完成' };
@@ -3999,30 +4296,47 @@ setTimeout(fitPanel,300);
     renderHistory();
     const box = $('tk_list');
     const order = ['doing', 'todo', 'done'];
-    const list = (d.tasks || []).slice().sort(function(a, b){ return (a.updated || 0) - (b.updated || 0); });
+    /* 新的排前面：先按更新时间倒序，再按创建时间倒序，最后按编号倒序 */
+    function tidNum(t){ const m = /^t(\d+)$/.exec(t.id || ''); return m ? +m[1] : 0; }
+    const list = (d.tasks || []).slice().sort(function(a, b){
+      return (b.updated || 0) - (a.updated || 0)
+          || (b.created || 0) - (a.created || 0)
+          || (tidNum(b) - tidNum(a));
+    });
     let html = '';
     let stat = { doing: 0, todo: 0, done: 0 };
     order.forEach(function(st){
       const arr = list.filter(function(t){ return (t.status || 'todo') === st; });
       stat[st] = arr.length;
-      html += '<div class="tk-empty" style="color:#9fb0d8;font-weight:700;font-size:12px;margin:6px 0 6px">'
-        + GROUP[st] + '（' + arr.length + '）</div>';
-      if(!arr.length){ html += '<div class="tk-empty">— 空 —</div>'; return; }
+      let rows = '';
       arr.forEach(function(t){
         const ops = [];
         if(st !== 'done') ops.push('<button data-op="done" data-id="' + t.id + '">完成</button>');
         if(st === 'done') ops.push('<button data-op="reopen" data-id="' + t.id + '">重开</button>');
+        if(st === 'done') ops.push('<button data-op="fix" data-id="' + t.id + '">' + (t.fix ? '改方案' : '补方案') + '</button>');
         if(st === 'todo') ops.push('<button data-op="doing" data-id="' + t.id + '">开始</button>');
         if(st === 'doing') ops.push('<button data-op="todo" data-id="' + t.id + '">搁置</button>');
         ops.push('<button data-op="del" data-id="' + t.id + '">删除</button>');
-        html += '<div class="tk-row ' + st + '">'
+        rows += '<div class="tk-row ' + st + '">'
           + '<span class="flag">' + FLAG[st] + '</span>'
           + '<div class="body"><div class="t">' + esc(t.title) + '</div>'
           + (t.detail ? '<div class="d">' + esc(t.detail) + '</div>' : '')
+          + (t.cause
+              ? '<div class="fx cause"><b>问题原因：</b>' + esc(t.cause) + '</div>'
+              : (st === 'done' ? '<div class="fx cause empty">还没有写问题原因</div>' : ''))
+          + (t.fix
+              ? '<div class="fx"><b>解决方案：</b>' + esc(t.fix) + '</div>'
+              : (st === 'done' ? '<div class="fx empty">还没有写解决方案</div>' : ''))
           + '<div class="meta">' + esc(t.kind || '需求') + ' · 创建 ' + fmt(t.created || now())
           + (t.updated && t.updated !== t.created ? ' · 更新 ' + fmt(t.updated) : '') + '</div></div>'
           + '<div class="ops">' + ops.join('') + '</div></div>';
       });
+      /* 三组各自独立：标题固定，列表各自限高各自滚动，不挤在一起 */
+      html += '<div class="tk-sec">'
+        + '<div class="tk-sec-h">' + GROUP[st] + '（' + arr.length + '）</div>'
+        + (arr.length ? '<div class="tk-sec-list">' + rows + '</div>'
+                      : '<div class="tk-empty">— 空 —</div>')
+        + '</div>';
     });
     box.innerHTML = html;
     $('tk_stat').textContent = '进行中 ' + stat.doing + ' · 待办 ' + stat.todo + ' · 已解决 ' + stat.done;
@@ -4052,52 +4366,100 @@ setTimeout(fitPanel,300);
     if(op === 'del'){
       if(!confirm('删除这条任务？')) return;
       d.tasks = d.tasks.filter(function(x){ return x.id !== id; });
-    } else if(op === 'done'){ t.status = 'done'; t.updated = now(); }
+    } else if(op === 'done'){ openFix(id, true); return; }
+    else if(op === 'fix'){ openFix(id, false); return; }
     else if(op === 'reopen'){ t.status = 'todo'; t.updated = now(); }
     else if(op === 'doing'){ t.status = 'doing'; t.updated = now(); }
     else if(op === 'todo'){ t.status = 'todo'; t.updated = now(); }
     save(d); render();
   }
 
+  /* 完成/补写解决方案：点「完成」先弹这个框，写完再落盘 */
+  let pendingFix = null;
+  function openFix(id, complete){
+    const d = data();
+    const t = (d.tasks || []).filter(function(x){ return x.id === id; })[0];
+    if(!t) return;
+    pendingFix = { id: id, complete: complete };
+    $('tkFixTitle').textContent = t.title;
+    $('tkCauseText').value = t.cause || '';
+    $('tkFixText').value = t.fix || '';
+    $('tkFixMask').classList.add('on');
+    setTimeout(function(){ $('tkCauseText').focus(); }, 30);
+  }
+  function closeFix(){
+    $('tkFixMask').classList.remove('on');
+    pendingFix = null;
+  }
+  function applyFix(causeText, fixText){
+    if(!pendingFix) return;
+    const c = (causeText || '').trim();
+    const v = (fixText || '').trim();
+    const d = data();
+    const t = (d.tasks || []).filter(function(x){ return x.id === pendingFix.id; })[0];
+    if(t){
+      if(c) t.cause = c; else delete t.cause;
+      if(v) t.fix = v; else delete t.fix;
+      if(pendingFix.complete) t.status = 'done';
+      t.updated = now();
+      save(d); render();
+    }
+    closeFix();
+  }
+
   function genPrompt(){
     const d = data();
     const doing = (d.tasks || []).filter(function(t){ return t.status === 'doing'; });
     const todo = (d.tasks || []).filter(function(t){ return (t.status || 'todo') === 'todo'; });
-    const lines = ['你是「小建哥的工具箱」这个项目的开发 agent。下面是当前要做的事，请按规则处理。', '', RULE, ''];
-    lines.push('当前任务清单（共 ' + (doing.length + todo.length) + ' 条）：');
+    const segs = [];
     if(doing.length){
-      lines.push('', '【进行中】');
-      doing.forEach(function(t, i){ lines.push((i+1) + '. ' + t.title + (t.detail ? '\n   细节：' + t.detail.replace(/\n/g, ' ') : '')); });
+      segs.push('【进行中】\n' + doing.map(function(t, i){
+        return (i + 1) + '. ' + t.title + (t.detail ? '\n   细节：' + t.detail.replace(/\n/g, ' ') : '');
+      }).join('\n'));
     }
     if(todo.length){
-      lines.push('', '【待办】');
-      todo.forEach(function(t, i){ lines.push((i+1) + '. ' + t.title + (t.detail ? '\n   细节：' + t.detail.replace(/\n/g, ' ') : '')); });
+      segs.push('【待办】\n' + todo.map(function(t, i){
+        return (i + 1) + '. ' + t.title + (t.detail ? '\n   细节：' + t.detail.replace(/\n/g, ' ') : '');
+      }).join('\n'));
     }
-    if(!doing.length && !todo.length) lines.push('（暂无未完成任务）');
-    const notes = (window.annoList ? window.annoList() : []) || [];
-    if(notes.length){
-      lines.push('', '【页面标注】共 ' + notes.length + ' 处（page + CSS 选择器，直接用 querySelector 定位）：');
-      notes.forEach(function(n, i){
-        lines.push((i + 1) + '. [' + n.page + '] ' + (n.text || n.sel) + '\n   选择器：' + (n.page === 'global' ? '' : '#' + n.page + ' ') + n.sel + '\n   要改：' + n.note);
-      });
-    }
-    lines.push('', '完成一条就把它的状态改成已解决，并把新的问题/需求继续记在任务板里。');
-    $('tk_prompt').textContent = lines.join('\n');
+    const tasksText = segs.length ? segs.join('\n\n') : '（暂无未完成任务）';
+    const text = getTpl()
+      .replace(/\{rules\}/g, RULE)
+      .replace(/\{count\}/g, String(doing.length + todo.length))
+      .replace(/\{tasks\}/g, tasksText);
+    $('tk_prompt').value = text;
+  }
+
+  /* 复制结果提示：贴在底部中间，2 秒后自动消失 */
+  function tkToast(msg){
+    let t = $('tk_toast');
+    if(!t){ t = document.createElement('div'); t.id = 'tk_toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(t._t);
+    t._t = setTimeout(function(){ t.classList.remove('on'); }, 1900);
   }
 
   function copyPrompt(){
-    const text = $('tk_prompt').textContent || '';
+    const el = $('tk_prompt');
+    const text = el.value || '';
+    if(!text.trim()){ tkToast('先点「生成 prompt」'); el.focus(); return; }
+    let settled = false;
+    function ok(){ if(settled) return; settled = true; tkToast('✓ 已复制到剪贴板（' + text.length + ' 字）'); }
+    function fail(){ if(settled) return; settled = true; tkToast('复制失败：请点进面板全选（Ctrl+A）再 Ctrl+C'); }
     function fallback(){
       const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
       document.body.appendChild(ta); ta.select();
-      try{ document.execCommand('copy'); }catch(e){}
+      let good = false;
+      try{ good = document.execCommand('copy'); }catch(e){ good = false; }
       document.body.removeChild(ta);
+      el.focus();
+      if(good) ok(); else fail();
     }
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).catch(fallback);
+      navigator.clipboard.writeText(text).then(ok, fallback);
     } else fallback();
-    $('tk_stat').textContent = '已复制到剪贴板';
   }
 
   function saveFile(){
@@ -4124,6 +4486,51 @@ setTimeout(fitPanel,300);
   });
   $('tk_gen').addEventListener('click', genPrompt);
   $('tk_copy').addEventListener('click', copyPrompt);
+  $('tkFixOk').addEventListener('click', function(){ applyFix($('tkCauseText').value, $('tkFixText').value); });
+  $('tkFixSkip').addEventListener('click', function(){
+    /* 「先不写」：只把状态改成已解决，不动已有的解决方案 */
+    if(pendingFix && pendingFix.complete){
+      const d = data();
+      const t = (d.tasks || []).filter(function(x){ return x.id === pendingFix.id; })[0];
+      if(t){ t.status = 'done'; t.updated = now(); save(d); render(); }
+    }
+    closeFix();
+  });
+  $('tkFixMask').addEventListener('click', function(e){ if(e.target === this) closeFix(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && $('tkFixMask').classList.contains('on')) closeFix();
+  });
+  /* 模板编辑：输入防抖保存，失焦立刻落盘 */
+  let tplTimer = null;
+  $('tk_tpl').addEventListener('input', function(){
+    const v = this.value;
+    clearTimeout(tplTimer);
+    tplTimer = setTimeout(function(){ setTpl(v); }, 400);
+    const st = $('tk_tpl_state');
+    if(st){
+      const miss = [];
+      if(v.indexOf('{tasks}') < 0) miss.push('{tasks}');
+      if(v.indexOf('{rules}') < 0) miss.push('{rules}');
+      if(miss.length){
+        st.textContent = '⚠ 缺少 ' + miss.join(' / ') + '，生成时这部分不会出现';
+        st.style.color = '#e0a34a';
+      }else{
+        st.textContent = '编辑中…';
+        st.style.color = '';
+      }
+    }
+  });
+  $('tk_tpl').addEventListener('blur', function(){
+    clearTimeout(tplTimer);
+    setTpl(this.value);
+    syncTplBox();
+  });
+  $('tk_tpl_reset').addEventListener('click', function(){
+    setTpl('');
+    syncTplBox();
+    tkToast('已恢复默认模板');
+  });
+  syncTplBox();
   $('tk_save').addEventListener('click', saveFile);
   function importTasks(text){
     var obj = JSON.parse(text);
@@ -4142,6 +4549,11 @@ setTimeout(fitPanel,300);
       }
     });
     cur.seq = Math.max(cur.seq || 1, obj.seq || 1, cur.tasks.length + 1);
+    /* 备份里有自定义模板就一起恢复 */
+    if(typeof obj.promptTpl === 'string' && obj.promptTpl.trim()){
+      cur.promptTpl = obj.promptTpl;
+      syncTplBox();
+    }
     if(Array.isArray(obj.notes) && obj.notes.length){
       var nd = MZ3.read('notes') || { items: [] };
       nd.items = nd.items || [];
@@ -4156,6 +4568,24 @@ setTimeout(fitPanel,300);
     return { added: added, updated: updated };
   }
   window.tkImportJson = importTasks;
+  /* 给标注用：点页面上某个位置写一句，直接变成一条待办任务（带页面 + 选择器） */
+  window.tkAddTask = function(t){
+    var d = data();
+    d.tasks = d.tasks || [];
+    var now = Date.now();
+    var task = {
+      id: 't' + (d.seq || 1),
+      title: t.title || '(未命名)',
+      detail: t.detail || '',
+      kind: t.kind || '问题',
+      status: t.status || 'todo',
+      created: now, updated: now
+    };
+    d.seq = (d.seq || 1) + 1;
+    d.tasks.push(task);
+    save(d); render();
+    return task;
+  };
   $('tk_import').addEventListener('click', function(){ $('tk_file').click(); });
   $('tk_file').addEventListener('change', function(){
     var f = $('tk_file').files && $('tk_file').files[0];
@@ -4175,7 +4605,59 @@ setTimeout(fitPanel,300);
       if(typeof d === 'string' && d.indexOf('TBERR|') === 0) $('tk_stat').textContent = d.slice(6);
     });
   }
+  /* ===== 与 exe 旁的 任务板.json 自动同步 =====
+     启动时拉 https://mztool.local/board.json（exe 宿主把 任务板.json 映射到这个地址）：
+     - tasks 按 id + updated 合并，新的赢；本地多出来的任务不删
+     - notesDrop 里点名的标注直接删掉（agent 修完标注就在 JSON 里写一条，不用手点）
+     网页版（file:// 或普通 http）拉不到就静默跳过。 */
+  function mergeBoard(obj){
+    if(!obj) return false;
+    var d = data(), changed = false;
+    if(Array.isArray(obj.tasks) && obj.tasks.length){
+      d.tasks = d.tasks || [];
+      var byId = {};
+      d.tasks.forEach(function(t){ byId[t.id] = t; });
+      obj.tasks.forEach(function(t){
+        if(!t || !t.id) return;
+        var old = byId[t.id];
+        if(!old){ d.tasks.push(t); changed = true; }
+        else if((t.updated || 0) > (old.updated || 0)){
+          old.title = t.title; old.detail = t.detail; old.kind = t.kind;
+          old.status = t.status; old.updated = t.updated; changed = true;
+        }
+      });
+      if(obj.seq && obj.seq > (d.seq || 1)){ d.seq = obj.seq; changed = true; }
+    }
+    if(Array.isArray(obj.notesDrop) && obj.notesDrop.length){
+      var nd = MZ3.read('notes') || { items: [] };
+      var keep = [], dropped = 0;
+      (nd.items || []).forEach(function(n){
+        var hit = obj.notesDrop.some(function(dr){
+          if(dr.page && dr.page !== n.page) return false;
+          if(dr.sel && dr.sel === n.sel) return true;
+          if(dr.note && n.note && n.note.indexOf(dr.note) >= 0) return true;
+          return false;
+        });
+        if(hit) dropped++; else keep.push(n);
+      });
+      if(dropped){ nd.items = keep; MZ3.write('notes', nd); changed = true; }
+    }
+    if(changed){ save(d); render(); if(window.annoRenderList) window.annoRenderList(); }
+    return changed;
+  }
+  window.__boardMerge = mergeBoard;
+
+  function pullBoard(){
+    try{
+      if(!/^https?:/.test(location.protocol)) return;
+      fetch('/board.json', { cache: 'no-store' }).then(function(r){
+        return r.ok ? r.json() : null;
+      }).then(function(obj){ if(obj) mergeBoard(obj); }).catch(function(){});
+    }catch(e){}
+  }
+
   render();
+  pullBoard();
   var inExe = !!(window.chrome && window.chrome.webview);
   if(inExe){ var wn = $('tk_webnote'); if(wn) wn.style.display = 'none'; }
 })();
@@ -4436,6 +4918,8 @@ function calcGemW(){
    选窗口 → 在画面上拖框选题目区 → 截屏 → 灰度/反色/放大 → OCR → 题库匹配 → 直接给答案（有选项时给「选 X」）
    引擎：tesseract.js + chi_sim(best_int 1.7MB)，首次下载约 5MB 后走缓存；CDN 三个源依次重试 */
 let SHOT_STREAM = null, SHOT_VIDEO = null, SEL = null;
+/* 只有点过「重选区域」才允许在预览画面上拖框，避免误点把框改小 */
+let ENGAGE = false;
 let OCR_WORKER = null, OCR_PROMISE = null;
 
 const OCR_HOSTS = [
@@ -4458,32 +4942,21 @@ const TESS_JS = [
 function shotEl(id){ return document.getElementById(id); }
 function setShotState(s){ const e = shotEl('shot_state'); if(e) e.textContent = s; }
 
-/* 各副本答题框在游戏窗口里的固定位置（归一化坐标，随窗口大小等比缩放）
-   新副本/科举遇到时，把框选量出来的比例加到这里，换对应档就行 */
-const SHOT_PRESETS = {
-  chichi: { x: 0.145, y: 0.485, w: 0.72, h: 0.33, label: '车迟国 · 答题框' },
-  full:   { x: 0, y: 0, w: 1, h: 1, label: '整个游戏窗口' }
-};
-/* 用户自己拖过的框会按场景记下来（localStorage），下次直接复用，不用反复拖 */
-const SHOT_LS = 'mz.shotRegions.v1';
+/* 答题框：内置一个默认位置（车迟国那种居中偏下的对话框），
+   自己拖过就用手动框，点「重置基色」可以回到内置默认 */
+const SHOT_LS = 'mz.shotRegions.v1';       /* 旧键原样保留，之前拖好的框还能用 */
+const SHOT_REGION_KEY = 'manual';
+const DEFAULT_BOX = { x: 0.145, y: 0.485, w: 0.72, h: 0.33 };   /* 内置默认框 */
 let USER_REGIONS = {};
 try{ USER_REGIONS = JSON.parse(localStorage.getItem(SHOT_LS) || '{}') || {}; }catch(e){ USER_REGIONS = {}; }
-function shotPresetKey(){ const e = shotEl('shot_preset'); return e ? e.value : 'chichi'; }
-function presetRect(key){
-  if(USER_REGIONS[key]) return USER_REGIONS[key];
-  return SHOT_PRESETS[key] || SHOT_PRESETS.full;
-}
+/* 拖过的框优先；没有就用内置默认框 */
 function currentRect(){
   if(SEL) return SEL;                                  /* 刚拖过就用手动的 */
-  return presetRect(shotPresetKey());
+  return USER_REGIONS[SHOT_REGION_KEY] || DEFAULT_BOX;
 }
 function saveRegion(r){
-  const k = shotPresetKey();
-  if(k === 'full') return;
-  USER_REGIONS[k] = { x: r.x, y: r.y, w: r.w, h: r.h };
+  USER_REGIONS[SHOT_REGION_KEY] = { x: r.x, y: r.y, w: r.w, h: r.h };
   try{ localStorage.setItem(SHOT_LS, JSON.stringify(USER_REGIONS)); }catch(e){}
-  const sel = shotEl('shot_preset');
-  if(sel){ const o = sel.options[sel.selectedIndex]; if(o && o.text.indexOf('（已记）') < 0) o.text += '（已记）'; }
 }
 function drawShotBox(r){
   const st = shotEl('shot_stage'), box = shotEl('shot_box');
@@ -4493,20 +4966,15 @@ function drawShotBox(r){
   box.style.left = (r.x * W) + 'px'; box.style.top = (r.y * H) + 'px';
   box.style.width = (r.w * W) + 'px'; box.style.height = (r.h * H) + 'px';
 }
-function onPresetChange(){
+/* 选完窗口时：有手动框就还原，没有就画内置默认框 */
+function restoreBox(){
   SEL = null;
-  const p = presetRect(shotPresetKey());
-  if(SHOT_STREAM) drawShotBox(p);
-  setShotState(SHOT_STREAM ? ('已选「' + p.label + '」，点「截屏搜题」') : '未选择窗口');
+  if(!SHOT_STREAM) return;
+  ENGAGE = false;
+  const mine = USER_REGIONS[SHOT_REGION_KEY];
+  drawShotBox(mine || DEFAULT_BOX);
+  setShotState(mine ? '已恢复上次框选，点「截屏搜题」' : '用内置默认框，位置不对点「重选区域」拖一个');
 }
-/* 记住过的场景，在下拉里标出来 */
-(function(){
-  const sel = shotEl('shot_preset');
-  if(!sel) return;
-  Array.prototype.forEach.call(sel.options, function(o){
-    if(USER_REGIONS[o.value]) o.text += '（已记）';
-  });
-})();
 
 function loadScriptAny(urls){
   return new Promise(function(res, rej){
@@ -4563,9 +5031,9 @@ async function pickWindow(){
     SHOT_VIDEO.onloadedmetadata = function(){
       const st = shotEl('shot_stage');
       st.style.height = Math.round(st.clientWidth * SHOT_VIDEO.videoHeight / SHOT_VIDEO.videoWidth) + 'px';
-      onPresetChange();          /* 尺寸定了再画预设框 */
+      restoreBox();             /* 尺寸定了再画上次记住的框 */
     };
-    onPresetChange();
+    restoreBox();
     SHOT_STREAM.getVideoTracks()[0].addEventListener('ended', function(){
       stopAuto(false);
       setShotState('窗口已断开，请重新选择');
@@ -4592,13 +5060,15 @@ function stopCapture(){
 
 function clearShotBox(){
   SEL = null;
-  const p = presetRect(shotPresetKey());
-  if(SHOT_STREAM && p) drawShotBox(p);
-  else{
-    const box = shotEl('shot_box');
-    if(box){ box.style.display = 'none'; box.style.width = '0'; box.style.height = '0'; }
-  }
-  if(SHOT_STREAM) setShotState(p ? ('已选「' + p.label + '」') : '已连接 · 拖框选题目区');
+  /* 「重选区域」= 进入拖框模式，并把记住的框清掉，重新在画面上拖一个 */
+  ENGAGE = true;
+  try{
+    delete USER_REGIONS[SHOT_REGION_KEY];
+    localStorage.setItem(SHOT_LS, JSON.stringify(USER_REGIONS));
+  }catch(e){}
+  const box = shotEl('shot_box');
+  if(box){ box.style.display = 'none'; box.style.width = '0'; box.style.height = '0'; }
+  setShotState(SHOT_STREAM ? '现在在画面上拖框选题目区（拖完自动记住）' : '未选择窗口');
 }
 
 /* 拖框选区 */
@@ -4612,7 +5082,7 @@ function clearShotBox(){
              y: Math.max(0, Math.min(r.height, ev.clientY - r.top)), rw: r.width, rh: r.height };
   }
   st.addEventListener('mousedown', function(ev){
-    if(!SHOT_STREAM) return;
+    if(!SHOT_STREAM || !ENGAGE) return;      /* 没点「重选区域」就不让改框 */
     const p = pt(ev);
     dragging = true; sx = p.x; sy = p.y;
     box.style.display = 'block';
@@ -4634,9 +5104,11 @@ function clearShotBox(){
     const p = pt(ev);
     const w = Math.abs(p.x - sx), h = Math.abs(p.y - sy);
     if(w < 12 || h < 8){ SEL = null; box.style.display = 'none'; setShotState('框太小了，重新拖一下'); return; }
+    ENGAGE = false;                          /* 拖完就退出拖框模式，之后再点画面不会改框 */
     SEL = { x: Math.min(sx, p.x) / p.rw, y: Math.min(sy, p.y) / p.rh, w: w / p.rw, h: h / p.rh };
     if(SEL.w >= 0.12 && SEL.h >= 0.06){
       saveRegion(SEL);                       /* 拖一次就按「当前场景」记下来，下次不用再拖 */
+      captureQuizBase();                     /* 同时把这个副本的答题面板颜色记成基色 */
       setShotState('已框选 ' + Math.round(w) + '×' + Math.round(h) + '（已记住，下次自动用），点「截屏搜题」');
     }else{
       setShotState('已框选 ' + Math.round(w) + '×' + Math.round(h) + '，点「截屏搜题」');
@@ -4706,9 +5178,16 @@ function upscaleCanvas(c, k){
   g.drawImage(c, 0, 0, UP_CANVAS.width, UP_CANVAS.height);
   return UP_CANVAS;
 }
+/* OCR 卡死兜底：tesseract 的 recognize 偶尔永不 resolve，会把 OCR_BUSY 永久挂住 */
+function withTimeout(p, ms, tag){
+  return new Promise(function(res, rej){
+    const t = setTimeout(function(){ rej(new Error((tag || '识别') + '超时 ' + Math.round(ms / 1000) + 's')); }, ms);
+    p.then(function(v){ clearTimeout(t); res(v); }, function(e){ clearTimeout(t); rej(e); });
+  });
+}
 async function ocrPass(c){
   const w = await getOcrWorker();
-  const r = await w.recognize(c.toDataURL('image/png'));
+  const r = await withTimeout(w.recognize(c.toDataURL('image/png')), 25000, 'OCR');
   let text = (r.data.text || '').trim();
   let conf = r.data.confidence || 0;
   /* 只切出一行：选项被挤在一起了，换 PSM 4（单列排版）再切一次 */
@@ -4716,7 +5195,7 @@ async function ocrPass(c){
   if(nl(text) < 2){
     try{
       await w.setParameters({ tessedit_pageseg_mode: '4' });
-      const r4 = await w.recognize(c.toDataURL('image/png'));
+      const r4 = await withTimeout(w.recognize(c.toDataURL('image/png')), 25000, 'OCR');
       await w.setParameters({ tessedit_pageseg_mode: '6' });
       const t4 = (r4.data.text || '').trim();
       if(nl(t4) > nl(text)){ text = t4; conf = r4.data.confidence || conf; }
@@ -4763,8 +5242,11 @@ async function runOcr(c){
       (best.text ? '' : '（没认到字：框小一点/把窗口放大再试）'));
     if(out) out.textContent = best.text || '（没识别到文字）';
   }catch(e){
-    setShotState('识别失败：' + (e && e.message || e));
-    if(out) out.textContent = 'OCR 引擎加载失败，检查网络后重试；也可以直接把截图粘进来（Ctrl+V）。';
+    const msg = String(e && e.message || e);
+    /* 超时/引擎挂掉时把 worker 丢掉，下一题重新建，别让引擎状态一起卡死 */
+    if(/超时/.test(msg)){ try{ OCR_WORKER = null; OCR_PROMISE = null; }catch(e2){} }
+    setShotState('识别失败：' + msg);
+    if(out) out.textContent = '识别失败：' + msg + '。检查网络后重试；也可以直接把截图粘进来（Ctrl+V）。';
   }finally{
     OCR_BUSY = false;
   }
@@ -4773,22 +5255,27 @@ async function runOcr(c){
 /* ---------- 自动识别：盯着框选区域，画面一变就自己认 ---------- */
 let AUTO_TIMER = null, AUTO_SIG = null, AUTO_LAST = 0, OCR_BUSY = false;
 let SIG_CANVAS = null, UP_CANVAS = null;          /* 复用画布，别每次 new 一张 */
+const SIG_W = 96, SIG_H = 54;                     /* 签名太粗会漏掉「只换了一行字」这种变化 */
 function autoSig(c){
-  if(!SIG_CANVAS){ SIG_CANVAS = document.createElement('canvas'); SIG_CANVAS.width = 40; SIG_CANVAS.height = 24; }
+  if(!SIG_CANVAS){ SIG_CANVAS = document.createElement('canvas'); SIG_CANVAS.width = SIG_W; SIG_CANVAS.height = SIG_H; }
   const g = SIG_CANVAS.getContext('2d', { willReadFrequently: true });
-  g.drawImage(c, 0, 0, 40, 24);
-  const d = g.getImageData(0, 0, 40, 24).data;
-  const out = new Uint8Array(40 * 24);
+  g.drawImage(c, 0, 0, SIG_W, SIG_H);
+  const d = g.getImageData(0, 0, SIG_W, SIG_H).data;
+  const out = new Uint8Array(SIG_W * SIG_H);
   for(let i = 0; i < out.length; i++){
     out[i] = (d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114) | 0;
   }
   return out;
 }
-function sigDiff(a, b){
-  if(!a || !b) return 999;
-  let s = 0;
-  for(let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]);
-  return s / a.length;
+/* 判定「换题了没有」：看差异像素的占比，不看平均差。
+   换题时只有文字那几行变，平均差很容易被大片背景压到阈值以下，
+   之前的实现就是这么漏掉的 —— 表现为第一题能认、换题后一直不认。 */
+function sigChanged(a, b){
+  if(!a || !b) return true;
+  if(a.length !== b.length) return true;
+  let hit = 0;
+  for(let i = 0; i < a.length; i++) if(Math.abs(a[i] - b[i]) > 12) hit++;
+  return hit / a.length > 0.012;                  /* 超过 1.2% 的像素明显变了 = 换题 */
 }
 function toggleAuto(){
   if(AUTO_TIMER){ stopAuto(true); return; }
@@ -4806,21 +5293,113 @@ function stopAuto(manual){
   if(b){ b.textContent = '自动识别'; b.style.background = ''; }
   if(manual) setShotState('自动识别已关');
 }
+/* 答题面板判定：两道门
+   ① 框内暗像素占比 ≥ 60%（实测答题面板 93%，跑图只有 10%）
+   ② 框内平均色要接近「基色」（挡夜晚/洞穴那种又暗又不蓝的画面）
+   基色：内置一个深蓝黑默认值；每次拖框时自动采样当前画面覆盖它；
+   页面上有「重置基色」按钮，可一键回到内置默认。 */
+const QUIZ_DARK_RATIO = 0.6;
+const QUIZ_BASE_TOL = 70;                 /* 平均色差（三通道均值）容差 */
+const QUIZ_BASE_LS = 'mz.quizBase.v1';
+const DEFAULT_QUIZ_BASE = { r: 18, g: 28, b: 46 };   /* 答题面板典型深蓝黑 */
+
+let QUIZ_BASE = (function(){
+  try{
+    const o = JSON.parse(localStorage.getItem(QUIZ_BASE_LS) || 'null');
+    if(o && typeof o.r === 'number') return o;
+  }catch(e){}
+  return { r: DEFAULT_QUIZ_BASE.r, g: DEFAULT_QUIZ_BASE.g, b: DEFAULT_QUIZ_BASE.b };
+})();
+
+let QUIZ_CANVAS = null;
+function quizSample(c){
+  if(!QUIZ_CANVAS){
+    QUIZ_CANVAS = document.createElement('canvas');
+    QUIZ_CANVAS.width = 64; QUIZ_CANVAS.height = 36;
+  }
+  const g = QUIZ_CANVAS.getContext('2d', { willReadFrequently: true });
+  g.drawImage(c, 0, 0, 64, 36);
+  const d = g.getImageData(0, 0, 64, 36).data;
+  const total = 64 * 36;
+  let dark = 0, sr = 0, sg = 0, sb = 0;
+  for(let i = 0; i < d.length; i += 4){
+    const r = d[i], gg = d[i + 1], b = d[i + 2];
+    sr += r; sg += gg; sb += b;
+    const lum = 0.299 * r + 0.587 * gg + 0.114 * b;
+    if(lum < 80) dark++;
+  }
+  return { dark: dark / total, r: sr / total, g: sg / total, b: sb / total };
+}
+function looksLikeQuizPanel(c){
+  const s = quizSample(c);
+  if(s.dark < QUIZ_DARK_RATIO) return false;
+  const diff = (Math.abs(s.r - QUIZ_BASE.r) + Math.abs(s.g - QUIZ_BASE.g) + Math.abs(s.b - QUIZ_BASE.b)) / 3;
+  return diff <= QUIZ_BASE_TOL;
+}
+/* 拖框时调用：把当前画面的平均色记成这个副本的基色 */
+function captureQuizBase(){
+  const c = grabFrame();
+  if(!c) return;
+  const s = quizSample(c);
+  QUIZ_BASE = { r: Math.round(s.r), g: Math.round(s.g), b: Math.round(s.b) };
+  try{ localStorage.setItem(QUIZ_BASE_LS, JSON.stringify(QUIZ_BASE)); }catch(e){}
+  const st = shotEl('shot_base');
+  if(st) st.textContent = '基色 rgb(' + QUIZ_BASE.r + ',' + QUIZ_BASE.g + ',' + QUIZ_BASE.b + ')';
+}
+/* 「重置基色」：基色和框选区域一起回到内置默认 */
+function resetQuizBase(){
+  QUIZ_BASE = { r: DEFAULT_QUIZ_BASE.r, g: DEFAULT_QUIZ_BASE.g, b: DEFAULT_QUIZ_BASE.b };
+  try{ localStorage.removeItem(QUIZ_BASE_LS); }catch(e){}
+  SEL = null;
+  ENGAGE = false;
+  try{
+    delete USER_REGIONS[SHOT_REGION_KEY];
+    localStorage.setItem(SHOT_LS, JSON.stringify(USER_REGIONS));
+  }catch(e){}
+  if(SHOT_STREAM) drawShotBox(DEFAULT_BOX);
+  const st = shotEl('shot_base');
+  if(st) st.textContent = '基色 rgb(' + QUIZ_BASE.r + ',' + QUIZ_BASE.g + ',' + QUIZ_BASE.b + ') 内置默认';
+  setShotState('已恢复内置默认框和基色');
+}
+/* 打开页面先把当前基色显示出来 */
+(function(){
+  const st = shotEl('shot_base');
+  if(st) st.textContent = '基色 rgb(' + QUIZ_BASE.r + ',' + QUIZ_BASE.g + ',' + QUIZ_BASE.b + ')';
+})();
+
+let AUTO_PHASE = '';
 async function autoTick(){
   if(OCR_BUSY || !AUTO_TIMER) return;
   const c = grabFrame();
   if(!c) return;
+  /* 先看是不是答题界面：跑图时画面一直在变，原来照样跑完整 OCR，
+     分数低就触发反色/扩框/放大四次尝试（5～8 秒），把唯一的 OCR 占住，
+     等真答题了还得排在它后面 —— 这是「自动识别慢」的根因。 */
+  if(!looksLikeQuizPanel(c)){
+    if(AUTO_PHASE !== 'idle'){
+      AUTO_PHASE = 'idle';
+      setShotState('跑图模式 · 等答题框出现');
+    }
+    return;
+  }
+  AUTO_PHASE = 'quiz';
   const sig = autoSig(c);
-  if(sigDiff(sig, AUTO_SIG) < 8) return;          /* 画面没变（阈值太低会被游戏动画刷屏） */
+  if(!sigChanged(sig, AUTO_SIG)) return;          /* 画面没变就不重复认 */
   const now = Date.now();
   if(now - AUTO_LAST < 1200) return;              /* 两次识别至少隔 1.2s */
   AUTO_SIG = sig;
   AUTO_LAST = now;
+  prepForOcr(c);                                  /* 和手动「截屏搜题」同一条预处理，识别率才对得上 */
   try{ await runOcr(c); }catch(e){}
   finally{
-    if(AUTO_TIMER){                                /* 认完把当前画面记成“已消费”，避免同一题反复认 */
+    /* 关键修复：只有「识别期间画面没变」才把当前画面标记成已消费。
+       一次识别要 2～5 秒，这期间用户很可能已经换题；
+       原来无条件把识别后的画面记成已消费，新题就永远等不到下一次识别 ——
+       这就是「第一题能认、换题后像卡死」的根因。 */
+    if(AUTO_TIMER){
       const c2 = grabFrame();
-      if(c2) AUTO_SIG = autoSig(c2);
+      if(c2 && !sigChanged(autoSig(c2), sig)) AUTO_SIG = autoSig(c2);
+      /* 画面变了就保持旧签名，下一个 tick 会立刻识别新题 */
     }
   }
 }
@@ -4930,7 +5509,6 @@ function smartSearch(text){
 
   if(!confident){
     /* 兜底：拿选项去反查候选答案（答案要够长、对得够准，避免「唐朝」这种通用词乱配） */
-    const lines = shotLines(raw);
     let promo = null;
     for(let i = 0; i < Math.min(scored.length, 12) && !promo; i++){
       const cand = scored[i];
@@ -4941,56 +5519,38 @@ function smartSearch(text){
           const on = shotNorm(opts[k].text);
           if(on.length < 2) continue;
           const r = (on === an) ? 1 : shotLcsLen(on, an) / Math.max(on.length, an.length);
-          if(r >= 0.7 && cand.sc >= 0.25){ promo = { cand: cand, opt: opts[k], optIdx: k, r: r }; break; }
+          if(r >= 0.7 && cand.sc >= 0.25){ promo = { cand: cand, r: r }; break; }
         }
       }else{
         /* 整段被认成一行、拆不出选项时：看答案片段是不是真的出现在识别文本里 */
         const run = shotRunLen(an, t);
-        if(run / an.length >= 0.6 && cand.sc >= 0.25) promo = { cand: cand, opt: null, optIdx: -1, r: run / an.length };
+        if(run / an.length >= 0.6 && cand.sc >= 0.25) promo = { cand: cand, r: run / an.length };
       }
     }
     if(promo){
-      const o = promo.opt;
       let html = '<span class="alab">答案</span>' + esc(promo.cand.q.a);
-      if(o){
-        const tag = o.plain ? '第 ' + (promo.optIdx + 1) + ' 个' : o.label;
-        html += ' <span class="opt">→ 选「' + esc(o.text) + '」（' + esc(tag) + '）</span>';
-      }
-      html += '<small style="color:#7a4a00">' + (o ? '题目那行没认全，是按选项反推的' : '题目那行没认全，是按答案片段反推的') +
+      html += '<small style="color:#7a4a00">题目那行没认全，是按答案片段反推的' +
         ' · 匹配：' + esc(promo.cand.q.q) + ' · 题目相似度 ' + (promo.cand.sc * 100).toFixed(0) + '%</small>';
       if(box){ box.classList.remove('empty'); box.innerHTML = html; }
       renderShotHits(scored.filter(function(x){ return x !== promo.cand; }).slice(0, 3));
       return Math.max(promo.cand.sc, 0.55);
+    }
+    /* 没把握但 top1 分数还行：直接把候选答案填上（标低置信度），别让答案区空着 */
+    if(best && best.sc >= 0.45){
+      let html = '<span class="alab">答案</span>' + esc(best.q.a);
+      html += '<small style="color:#7a4a00">低置信度 ' + (best.sc * 100).toFixed(0) +
+        '% · 匹配：' + esc(best.q.q) + ' · 对不上就看下面推荐</small>';
+      if(box){ box.classList.remove('empty'); box.innerHTML = html; }
+      renderShotHits(scored.slice(1, 4));
+      return best.sc;
     }
     if(box){ box.classList.add('empty'); box.innerHTML = '<span class="ph">题库没把握 · 识别文字见下方（文字里没有问句，就是框没框到，往上挪一点）</span>'; }
     renderShotHits(scored.slice(0, 3));
     return (best ? best.sc : 0);
   }
   const ans = best.q.a;
-
-  /* 答案对到选项（opts 在上面已经算好了） */
-  let optHtml = '';
-  if(opts.length && ans){
-    const an = shotNorm(ans);
-    let bestI = -1, bestS = 0;
-    opts.forEach(function(o, i){
-      const on = shotNorm(o.text);
-      if(!on || !an) return;
-      let s;
-      if(on === an) s = 1;
-      else if(an.indexOf(on) >= 0 || on.indexOf(an) >= 0) s = 0.9;
-      else s = shotLcsLen(on, an) / Math.max(on.length, an.length);
-      if(s > bestS){ bestS = s; bestI = i; }
-    });
-    if(bestI >= 0 && bestS >= 0.6){
-      const o = opts[bestI];
-      optHtml = o.plain
-        ? '选「' + esc(o.text) + '」（第 ' + (bestI + 1) + ' 个）'
-        : '选 ' + esc(o.label) + '（' + esc(o.text) + '）';
-    }
-  }
+  /* 只给答案文字：不再提示「选第几个 / 选 A」—— OCR 拆选项的顺序不可靠，位置提示经常是错的 */
   let html = '<span class="alab">答案</span>' + esc(ans);
-  if(optHtml) html += ' <span class="opt">→ ' + optHtml + '</span>';
   html += '<small>匹配：' + esc(best.q.q) + ' · 相似度 ' + (best.sc * 100).toFixed(0) + '%</small>';
   if(box){ box.classList.remove('empty'); box.innerHTML = html; }
   renderShotHits(scored.slice(1, 4));
@@ -5413,6 +5973,9 @@ function syInit(){
   sySetChips('chars', body.chars || 1);
   sySetChips('hours', body.hours === undefined ? 8 : body.hours);
   syCalc();
+  /* ② 炼药统计在本脚本之前就渲染过一次，那时单价还没从存储填回输入框，
+     会被当成 0 算出负收益；这里单价回填完再重算一次表。 */
+  if(window.alRender) window.alRender();
 }
 
 /* ===== ⑥ 商人进销存（r67） =====
@@ -6193,11 +6756,11 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   <div class="hd"><span>计算器</span><span class="sp"></span><span class="x" id="mzCalcX">✕</span></div>
   <div class="scr" id="mzCalcScr">0</div>
   <div class="pad">
+    <button class="cl" data-k="C" style="grid-column:span 3">清空</button><button class="cl" data-k="B">⌫</button>
     <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="op" data-k="/">÷</button>
     <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="op" data-k="*">×</button>
     <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="op" data-k="-">−</button>
-    <button data-k="0">0</button><button data-k=".">.</button><button class="op" data-k="+">+</button><button class="eq" data-k="=">=</button>
-    <button class="cl" data-k="C" style="grid-column:span 3">清空</button><button class="cl" data-k="B">⌫</button>
+    <button data-k="0">0</button><button data-k=".">.</button><button class="eq" data-k="=">=</button><button class="op" data-k="+">+</button>
   </div>
 </div>
 
@@ -6278,37 +6841,48 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     u.counts[key] = (u.counts[key] || 0) + 1;
     MZ3.write('usage', u);
   }
+  /* 卡片位置：常用查询在 .pc-grid，梦幻常识在 .gl-grid；两处都按使用频率自动排 */
+  const ZONES = [
+    { host: 'pane_renwu', grid: '.pc-grid', card: '.grp.pc' },
+    { host: 'gonglue',    grid: '.gl-grid', card: '.grp.cg' }
+  ];
+
   function keyOf(grp){
+    /* 只用 cap 里的纯标题当 key：跳过 .tag 徽标，避免「已整理 / 23 种」这类标签改了导致计数漂移 */
     const cap = grp.querySelector('.cap');
     if(!cap) return '';
-    return (cap.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    let s = '';
+    Array.prototype.forEach.call(cap.childNodes, function(n){
+      if(n.nodeType === 3) s += n.nodeValue;
+      else if(n.nodeType === 1 && !n.classList.contains('tag')) s += n.textContent;
+    });
+    return (s || '').replace(/\s+/g, ' ').trim().slice(0, 40);
   }
   function sortByUsage(){
     const u = usage().counts || {};
-    ['pane_renwu', 'gonglue'].forEach(function(id){
-      const host = $(id);
+    ZONES.forEach(function(z){
+      const host = $(z.host);
       if(!host) return;
-      const grps = Array.prototype.slice.call(host.querySelectorAll(':scope > .grp'));
-      if(grps.length < 2) return;
-      grps.sort(function(a, b){
-        const ka = u[keyOf(a)] || 0, kb = u[keyOf(b)] || 0;
-        return kb - ka;
-      }).forEach(function(g){ host.appendChild(g); });
+      const grid = host.querySelector(z.grid);
+      if(!grid) return;
+      const cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > ' + z.card));
+      if(cards.length < 2) return;
+      /* 稳定排序：同分保持原顺序，刷新时不会乱跳 */
+      cards.sort(function(a, b){ return (u[keyOf(b)] || 0) - (u[keyOf(a)] || 0); })
+        .forEach(function(c){ grid.appendChild(c); });
     });
   }
-  function currentSort(){ return ($('pane_sort') || {}).value || 'default'; }
-
-  /* 计数：点进某个功能块，就给它记一次 */
-  ['pane_renwu', 'gonglue'].forEach(function(id){
-    const host = $(id);
+  /* 计数：点进某个卡片就记一次。**不在使用中重排**——卡片突然跳位置很难受，
+     顺序统一在「刷新页面 / 下次打开」时更新 */
+  ZONES.forEach(function(z){
+    const host = $(z.host);
     if(!host) return;
     host.addEventListener('click', function(e){
-      const grp = e.target.closest('.grp');
-      if(!grp || !host.contains(grp)) return;
-      const k = keyOf(grp);
+      const card = e.target.closest(z.card);
+      if(!card || !host.contains(card)) return;
+      const k = keyOf(card);
       if(!k) return;
       bump(k);
-      if(currentSort() === 'usage') sortByUsage();
     });
   });
 
@@ -6326,14 +6900,12 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   Array.prototype.forEach.call(document.querySelectorAll('#renwu .pane-btn'), function(b){
     b.addEventListener('click', function(){ show(b.getAttribute('data-pane')); });
   });
-  const sel = $('pane_sort');
-  if(sel) sel.addEventListener('change', function(){
-    if(sel.value === 'usage') sortByUsage();
-    else location.reload();      // 回到默认 = 刷新页面（保持原来的行为）
-  });
-
+  /* 手动「刷新排序」：点一下立刻按最新使用次数重排，不分页也不重开 */
+  const reorderBtn = $('pane_reorder');
+  if(reorderBtn) reorderBtn.addEventListener('click', function(){ sortByUsage(); });
   const ui = MZ3.read('ui') || {};
   show(ui.queryPane === 'gonglue' ? 'gonglue' : 'renwu');
+  sortByUsage();     /* 打开页面排一次；之后只在手动刷新或下次打开时再排 */
 
   /* 老链接 showTab('gonglue') 仍然可用：切到常用查询页 + 常识 pane */
   const orig = window.showTab;
@@ -6350,10 +6922,10 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
 <div id="annoHi"></div>
 <div id="annoBadges"></div>
 <div id="annoPanel">
-  <div class="ap-h"><span>添加标注</span><span class="ap-x" id="annoClose">✕</span></div>
+  <div class="ap-h"><span>标注 → 任务</span><span class="ap-x" id="annoClose">✕</span></div>
   <div class="ap-meta"><b id="annoPage">—</b> · <span id="annoText">—</span></div>
-  <textarea id="annoNote" placeholder="这条要改什么？说清楚就行，比如：这里的单位要显示成万两"></textarea>
-  <div class="ap-b"><button class="btn" id="annoSave">保存标注</button>
+  <textarea id="annoNote" placeholder="这条要改什么？保存后直接生成一条待办任务（带页面和选择器）"></textarea>
+  <div class="ap-b"><button class="btn" id="annoSave">转成任务</button>
     <button class="btn gray" id="annoDel" style="display:none">删除</button>
     <button class="btn gray" id="annoCancel">取消</button>
     <span class="ap-tip" id="annoTip"></span></div>
@@ -6418,7 +6990,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     var host = $('annoBadges');
     host.innerHTML = '';
     if(!mode) return;
-    var list = data().items;
+    var list = data().items.filter(function(n){ return !n.converted; });
     list.forEach(function(n, i){
       var el = findEl(n);
       if(!el) return;
@@ -6457,22 +7029,25 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   function commit(){
     var note = $('annoNote').value.trim();
     if(!note){ $('annoTip').textContent = '写点内容再保存'; return; }
-    var d = data();
-    if(editing){
-      editing.note = note; editing.updated = Date.now();
-    } else {
-      d.items.push({
-        id: 'n' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
-        page: $('annoPanel').dataset.page,
-        sel: $('annoPanel').dataset.sel,
-        text: $('annoPanel').dataset.text,
-        note: note, ts: Date.now()
+    var page = $('annoPanel').dataset.page || 'global';
+    var sel = $('annoPanel').dataset.sel || '';
+    var text = $('annoPanel').dataset.text || '';
+    if(window.tkAddTask){
+      window.tkAddTask({
+        title: note.length > 30 ? note.slice(0, 30) + '…' : note,
+        detail: '页面：' + (PAGE_NAME[page] || page)
+          + (text ? '\n目标：' + text : '')
+          + '\n选择器：' + (page === 'global' ? '' : '#' + page + ' ') + sel,
+        kind: '问题'
       });
     }
-    save(d);
+    if(editing){   // 老标注再被编辑：标记已转任务，别再挂回页面
+      var d0 = data();
+      editing.note = note; editing.converted = true; editing.updated = Date.now();
+      save(d0);
+    }
     closePanel();
     paintBadges();
-    if(window.annoRenderList) window.annoRenderList();
   }
   function remove(){
     if(!editing) return;
@@ -6515,7 +7090,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     if(el.closest('.tbar') || el.closest('#tabs')) return;
     e.preventDefault(); e.stopPropagation();
     var n = { page: pageOf(el), sel: cssPath(el), text: labelOf(el), note: '', x: e.clientX, y: e.clientY };
-    var cur = data().items.filter(function(x){ return x.page === n.page && x.sel === n.sel; })[0];
+    var cur = data().items.filter(function(x){ return !x.converted && x.page === n.page && x.sel === n.sel; })[0];
     openPanel(cur || n, !!cur);
   }, true);
 
@@ -6529,7 +7104,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   function renderList(){
     var host = $('anno_list');
     if(!host) return;
-    var items = data().items;
+    var items = data().items.filter(function(n){ return !n.converted; });
     if(!items.length){ host.innerHTML = '<div class="anno-empty">还没有标注。点顶栏「✏️ 标注」，再点页面上任意位置就能加。</div>'; return; }
     host.innerHTML = items.map(function(n, i){
       return '<div class="anno-row" data-id="' + n.id + '">'
@@ -6555,13 +7130,19 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     });
   }
   window.annoRenderList = renderList;
-  window.annoList = function(){ return data().items; };
+  window.annoList = function(){ return data().items.filter(function(n){ return !n.converted; }); };
   window.annoGoto = function(id){
     var n = data().items.filter(function(x){ return x.id === id; })[0];
     if(!n) return;
     if(n.page && n.page !== 'global' && window.showTab) showTab(n.page);
     setTimeout(function(){ var el = findEl(n); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }, 60);
   };
+  /* 老版本存的标注不再单独显示、也不再进 prompt：统一标 converted（数据保留，不删） */
+  (function retireLegacyNotes(){
+    var d = data(), ch = false;
+    (d.items || []).forEach(function(n){ if(!n.converted){ n.converted = true; ch = true; } });
+    if(ch) save(d);
+  })();
   renderList();
 })();
 </script>

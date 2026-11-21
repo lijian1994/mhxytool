@@ -222,6 +222,38 @@ def main():
               r and r.get("today_in") == "2.00" and r.get("today_mat") == "0.89"
               and r.get("today_pt") == "4.80" and r.get("today_net") == "-3.69", r)
 
+        # 1b) ② 收益：改单价后表格立即按新单价重算
+        r = t.ev(r"""(function(){
+          var tabBtn = document.querySelector('#tabs button[data-t="shouyi"]');
+          if(tabBtn) tabBtn.click();
+          function set(id,v){var e=document.getElementById(id); if(!e) return;
+            e.value=v; e.dispatchEvent(new Event('input',{bubbles:true}));}
+          function row(){ var tr=document.querySelector('#al_body tr'); return tr? tr.innerText.replace(/\s+/g,' ').trim(): ''; }
+          var before = row();
+          set('sy_p3', 3.0);
+          var after = row();
+          set('sy_p3', 2.5);
+          return { before: before, after: after };
+        })()""")
+        check("② 收益按页面当前单价重算：2.5→15.00，改 3.0→20.00",
+              r and "15.00" in (r.get("before") or "") and "20.00" in (r.get("after") or ""), r)
+
+        # 1c) 本周合计跨月：起点在上个月时，上月最后几天也要算进来
+        r = t.ev(r"""(function(){
+          var months = {
+            '2026-10': { days: { '2026-10-30': {n:10,n3:5,njc:5,cost:3,income:0},
+                                '2026-10-31': {n:2,n3:1,njc:1,cost:0.6,income:0} } },
+            '2026-11': { days: { '2026-11-01': {n:4,n3:2,njc:2,cost:1.2,income:0},
+                                '2026-11-02': {n:3,n3:1,njc:2,cost:0.9,income:0} } }
+          };
+          var w = window.__alWeekSumOf(months, '2026-10-26', '2026-11-02');
+          return { n: w.n, n3: w.n3, njc: w.njc,
+                   cost: Math.round(w.cost * 100) / 100, days: w.days };
+        })()""")
+        check("② 本周合计跨月：上月 10/30~31 也并进来",
+              r and r.get("n") == 19 and r.get("n3") == 9 and r.get("njc") == 10
+              and r.get("cost") == 5.7 and r.get("days") == 4, r)
+
         # 2) 收支记账：1000 万两 @0.078 → 实收 74.10
         r = t.ev(r"""(function(){
           function set(id,v){var e=document.getElementById(id); if(!e) return;
@@ -236,21 +268,53 @@ def main():
         check("记账：卖币 1000 万两 @0.078 → 实收 74.10",
               r and r.get("inc", "").endswith("74.10") and r.get("row", "").find("74.10") >= 0, r)
 
-        # 3) 任务板：新增 + 生成 prompt
+        # 3) 任务板：新增 + 生成 prompt（面板可编辑、复制有提示）
         r = t.ev(r"""(function(){
           var t=function(id){var e=document.getElementById(id); return e? e.textContent: null;};
           document.getElementById('tk_title').value='自检任务';
           document.getElementById('tk_detail').value='来自 selfcheck.py';
           document.getElementById('tk_add').click();
           document.getElementById('tk_gen').click();
-          var p = t('tk_prompt') || '';
-          return { stat: (t('tk_stat')||'').trim(), hasTitle: p.indexOf('自检任务')>=0,
-                   hasRule: p.indexOf('先复述你的实施计划')>=0,
-                   hasExeRule: p.indexOf('不要执行 make_exe.py --publish')>=0 };
+          var pe = document.getElementById('tk_prompt');
+          var p = pe.value || '';
+          var hasTitle = p.indexOf('自检任务')>=0;
+          var hasRule = p.indexOf('先复述你的实施计划')>=0;
+          var hasExeRule = p.indexOf('不要执行 make_exe.py --publish')>=0;
+          pe.value = '手改后的 prompt 内容';
+          document.getElementById('tk_copy').click();
+          return new Promise(function(res){
+            setTimeout(function(){
+              var ts = document.getElementById('tk_toast');
+              res({ stat: (t('tk_stat')||'').trim(), hasTitle: hasTitle, hasRule: hasRule,
+                    hasExeRule: hasExeRule, tag: pe.tagName,
+                    kept: pe.value === '手改后的 prompt 内容',
+                    toastOn: !!(ts && ts.classList.contains('on')),
+                    toastText: ts ? ts.textContent : '' });
+            }, 500);
+          });
         })()""")
         check("任务板：新增 + prompt 含规则", r and r.get("hasTitle") and r.get("hasRule") and r.get("hasExeRule"), r)
+        check("prompt 面板可编辑 + 复制有提示（提示不覆盖原文本）",
+              r and r.get("tag") == "TEXTAREA" and r.get("kept")
+              and r.get("toastOn") and ("复制" in (r.get("toastText") or "")), r)
 
-        # 4) 交互式标注：开标注 → 点元素 → 填备注 → 保存 → 进 prompt
+        # 3b) 浮窗计算器键位：清空/⌫ 在第一行，+ 与 = 对调
+        r = t.ev(r"""(function(){
+          var btn = document.getElementById('calcBtn'); if(btn) btn.click();
+          var bs = document.querySelectorAll('#mzCalc .pad button');
+          function k(i){ return bs[i] ? bs[i].getAttribute('data-k') : null; }
+          function hit(kk){ var b=document.querySelector('#mzCalc .pad button[data-k="'+kk+'"]'); if(b) b.click(); }
+          hit('C'); hit('1'); hit('2'); hit('+'); hit('3'); hit('=');
+          var scr = document.getElementById('mzCalcScr').textContent;
+          hit('C');
+          if(btn) btn.click();
+          return { first: k(0), second: k(1), b15: k(bs.length-2), b16: k(bs.length-1), scr: scr };
+        })()""")
+        check("计算器：清空/⌫ 置顶，+ 与 = 对调且仍能算 12+3=15",
+              r and r.get("first") == "C" and r.get("second") == "B"
+              and r.get("b15") == "=" and r.get("b16") == "+" and r.get("scr") == "15", r)
+
+        # 4) 标注 → 任务：点元素、写一句、保存直接生成待办任务（不再存标注）
         r = t.ev(r"""(function(){
           var tabBtn = document.querySelector('#tabs button[data-t="shouyi"]');
           if(tabBtn) tabBtn.click();
@@ -260,20 +324,58 @@ def main():
           var opened = document.getElementById('annoPanel').classList.contains('on');
           document.getElementById('annoNote').value = '这里要改成显示万两';
           document.getElementById('annoSave').click();
-          var items = window.annoList ? window.annoList() : [];
-          var badges = document.querySelectorAll('.anno-badge').length;
-          document.getElementById('annoBtn').click();   // 先退出标注模式再点生成
+          var tasks = (MZ3.read('tasks') || {tasks:[]}).tasks || [];
+          var made = tasks.filter(function(t){ return t.title.indexOf('这里要改成显示万两') >= 0; })[0];
+          var notes = ((MZ3.read('notes') || {items:[]}).items || []).filter(function(n){ return !n.converted; });
+          document.getElementById('annoBtn').click();
           document.getElementById('tk_gen').click();
-          var p = document.getElementById('tk_prompt').textContent || '';
-          return { opened: opened, count: items.length,
-                   note: items[0] && items[0].note, page: items[0] && items[0].page,
-                   sel: items[0] && items[0].sel, badges: badges,
-                   inPrompt: p.indexOf('页面标注') >= 0 && p.indexOf('这里要改成显示万两') >= 0,
-                   rows: document.querySelectorAll('.anno-row').length };
+          var p = document.getElementById('tk_prompt').value || '';
+          return { opened: opened, made: !!made, detail: made ? made.detail : '',
+                   notes: notes.length,
+                   inPrompt: p.indexOf('这里要改成显示万两') >= 0,
+                   hasAnnoSection: p.indexOf('【页面标注】') >= 0,
+                   hasBlock: !!document.getElementById('anno_list') };
         })()""")
-        check("标注：点元素加备注 → 气泡 + 清单 + prompt",
-              r and r.get("opened") and r.get("count") == 1 and r.get("badges") == 1
-              and r.get("inPrompt") and r.get("rows") == 1, r)
+        check("标注→任务：保存直接生成待办任务（带页面+选择器），不再存标注",
+              r and r.get("opened") and r.get("made") and not r.get("hasAnnoSection")
+              and not r.get("hasBlock") and r.get("notes") == 0
+              and "shouyi" in (r.get("detail") or "") and "div:nth-of-type" in (r.get("detail") or "")
+              and r.get("inPrompt"), r)
+
+        # 4b) 任务板自动同步（__boardMerge）：合并 board.json 新任务
+        r = t.ev(r"""(function(){
+          var td = MZ3.read('tasks') || {tasks:[]};
+          var before = (td.tasks||[]).length;
+          var changed = window.__boardMerge({
+            tasks: [{id:'t99', title:'同步进来的任务', detail:'来自 board.json', kind:'问题',
+                     status:'done', created:1, updated:Date.now()}],
+            seq: 100
+          });
+          var td2 = MZ3.read('tasks') || {tasks:[]};
+          return { changed: !!changed, before: before, after: (td2.tasks||[]).length,
+                   hasT99: (td2.tasks||[]).some(function(t){ return t.id === 't99'; }) };
+        })()""")
+        check("任务板自动同步：合并 board.json 新任务",
+              r and r.get("changed") and r.get("hasT99") and r.get("after") == r.get("before") + 1, r)
+
+        # 4c) 任务清单三组分开：各自限高、各自滚
+        r = t.ev(r"""(function(){
+          var tb = document.querySelector('#tabs button[data-t="task"]');
+          if(tb) tb.click();
+          var tasks = [];
+          for(var i=0;i<8;i++) tasks.push({id:'t8'+i, title:'长列表测试 '+i, detail:'细节 '+i,
+                                            kind:'问题', status:'done', created:i+1, updated:i+1});
+          window.__boardMerge({tasks: tasks, seq: 200});
+          var lists = document.querySelectorAll('#tk_list .tk-sec-list');
+          var done = lists[lists.length - 1];
+          var st = getComputedStyle(done);
+          return { groups: document.querySelectorAll('#tk_list .tk-sec-h').length,
+                   overflow: st.overflowY, maxH: st.maxHeight,
+                   sh: done.scrollHeight, ch: done.clientHeight };
+        })()""")
+        check("任务清单：三组分开、已解决组限高可滚",
+              r and r.get("groups") == 3 and r.get("overflow") == "auto"
+              and r.get("maxH") not in (None, "none") and r.get("sh") > r.get("ch"), r)
 
         # 4) 页签记忆：点任务进度 → 重新加载 → 仍在任务进度
         t.ev("document.querySelector('#tabs button[data-t=\"task\"]').click()")
@@ -283,7 +385,29 @@ def main():
         r = t.ev("(function(){var s=document.querySelector('section.on'); return s && s.id;})()")
         check("页签记忆：重载后仍在「任务进度」", r == "task", r)
 
-        # 5) 无 JS 异常
+        # 5) 开页回归：单价存在 bodywork 里，登录后 ② 必须按这个单价算
+        #    （用户报的 -18：② 先渲染、单价后回填，被当成 0）
+        t.ev(r"""(function(){
+          MZ3.write('bodywork', {chars:1, hours:8, sy_lv:120, sy_cap:900,
+                                 sy_p3:2.5, sy_pjc:0.25, sy_rate:42.5, sy_cost:0.45});
+          var now = new Date();
+          var mk = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2);
+          var dk = mk + '-' + ('0' + now.getDate()).slice(-2);
+          var months = {}; months[mk] = { days: {} };
+          months[mk].days[dk] = { n:40, n3:17, njc:23, cost:18, income:0, methods: {'3+1':40} };
+          MZ3.write('alchemy', { months: months });
+          return 1;
+        })()""")
+        t.send("Page.reload", {})
+        time.sleep(3.0)
+        r = t.ev(r"""(function(){
+          var tr = document.querySelector('#al_body tr');
+          return { row: tr ? tr.textContent.replace(/\s+/g, ' ').trim() : null };
+        })()""")
+        check("② 收益：登录后按 17×2.5 + 23×0.25 − 18 = 30.25",
+              r and "30.25" in (r.get("row") or ""), r)
+
+        # 6) 无 JS 异常
         errs = t.ev("(function(){ try{ return JSON.stringify(window.__errs||[]); }catch(e){ return '[]'; } })()")
         check("无 JS 运行异常", errs in (None, "[]"), errs)
 

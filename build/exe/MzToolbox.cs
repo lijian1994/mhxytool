@@ -594,6 +594,24 @@ namespace MzToolbox
                                 return;
                             }
                         }
+                        if (path == "/board.json")
+                        {
+                            // 页面启动时拉这个地址做自动同步；每次现读，agent 改完 JSON 下次开 app 就生效
+                            try
+                            {
+                                string dir = Boot.ExeDir();
+                                if (string.IsNullOrEmpty(dir)) dir = Boot.RootDir;
+                                string board = Path.Combine(dir, "任务板.json");
+                                if (File.Exists(board))
+                                {
+                                    byte[] b = File.ReadAllBytes(board);
+                                    args.Response = env.CreateWebResourceResponse(
+                                        new MemoryStream(b, false), 200, "OK", "application/json; charset=utf-8");
+                                    return;
+                                }
+                            }
+                            catch { }
+                        }
                         args.Response = env.CreateWebResourceResponse(
                             new MemoryStream(new byte[0], false), 404, "Not Found", "Content-Type: text/plain");
                     }
@@ -1116,12 +1134,11 @@ namespace MzToolbox
             if (WindowState == FormWindowState.Minimized && tray != null) HideToTray();
         }
 
-        // 缩到托盘时把 WebView2 整个拆掉，内存还给系统；从托盘恢复再重建（约 0.6 秒）
+        // 缩到托盘只隐藏，不拆 WebView2：常驻两百多 MB 换恢复时秒开，比每次重建更划算
         private void HideToTray()
         {
-            Boot.Mark("tray: hidden");
+            Boot.Mark("tray: hidden (webview kept)");
             Hide();
-            TeardownWebView();
             try { tray.ShowBalloonTip(1200, Boot.AppTitle, "已缩到托盘，双击图标打开", ToolTipIcon.Info); } catch { }
         }
 

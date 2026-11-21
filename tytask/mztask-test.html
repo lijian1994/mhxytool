@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>mztask 测试</title>
+<style>
+  body{margin:0;padding:20px;background:#0f1320;font-family:"Microsoft YaHei",sans-serif}
+  .top{max-width:1020px;margin:0 auto 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .top button,.top select{background:#1b2440;border:1px solid #26304f;color:#e6ecff;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+  .top button.on{background:linear-gradient(180deg,#8a5a2b,#6d4620);border-color:#c08a4a;color:#fff;font-weight:600}
+  .top button[hidden]{display:none}
+  .top span{color:#8b96b8;font-size:12px}
+  .sub{max-width:1020px;margin:0 auto 12px;color:#6f7a99;font-size:12px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="top">
+  <button id="annBtn">标注</button>
+  <label style="color:#8b96b8;font-size:12px">持久化</label>
+  <select id="storeSel">
+    <option value="local">localStorage（默认）</option>
+    <option value="idb">IndexedDB（记录级）</option>
+    <option value="opfs">OPFS（浏览器私有文件）</option>
+    <option value="jsfile">data.js（一个 js 文件）</option>
+    <option value="file">单文件 jsonl（追加日志）</option>
+    <option value="dir">目录（一任务一文件）</option>
+    <option value="http">后端 API</option>
+    <option value="host">exe 宿主落盘</option>
+    <option value="memory">内存（测试用）</option>
+  </select>
+  <button id="openBtn" hidden></button>
+  <button id="newBtn" hidden></button>
+  <span id="tip">刷新不丢</span>
+</div>
+<div class="sub" id="sub"></div>
+
+<div id="tasks"></div>
+
+<script src="mztask.js"></script>
+<script src="mztask-data.js"></script>
+<script>
+  var board = null, ann = null;
+  var currentStore = 'local', currentHandle = null;
+
+  var annBtn = document.getElementById('annBtn');
+  var storeSel = document.getElementById('storeSel');
+  var openBtn = document.getElementById('openBtn');
+  var newBtn = document.getElementById('newBtn');
+  var tip = document.getElementById('tip');
+  var sub = document.getElementById('sub');
+
+  function wireAnnotate(){
+    ann = MZTask.annotate({ board: board, trigger: '#annBtn' });
+    ann.setOptions({
+      onStart: function(){ annBtn.textContent = '标注（开）'; tip.textContent = '点页面上要改的地方；再点按钮或 ESC 退出'; },
+      onStop:  function(){ annBtn.textContent = '标注'; tip.textContent = '刷新不丢'; }
+    });
+  }
+
+  function syncSelect(key){
+    if(!key) return;
+    var has = Array.prototype.some.call(storeSel.options, function(o){ return o.value === key; });
+    if(has && storeSel.value !== key) storeSel.value = key;
+  }
+
+  var DESC = {
+    jsfile: function(h){ return 'data.js：每次改动直接覆盖写回 ' + (h ? h.name : '文件') + '（js 文件必须整体写）'; },
+    file:   function(h){ return '单文件 jsonl：改动只追加一行，不重写已有内容 ' + (h ? h.name : ''); },
+    dir:    function(h){ return '目录：一任务一文件，改只重写那一个 ' + (h ? h.name : ''); },
+    http:   function(){ return '后端 API：/api/tasks（没有服务时读为空，写会被忽略）'; }
+  };
+  function describe(label, handle){
+    var f = DESC[label];
+    if(f) return f(handle);
+    return '当前持久化：' + label;
+  }
+
+  function isFileKind(v){ return v === 'jsfile' || v === 'file' || v === 'dir'; }
+
+  async function mountWith(adapter, label, handle, opts){
+    opts = opts || {};
+    var prevTasks = (board && opts.migrate) ? board.getTasks() : [];
+    currentStore = label || '';
+    currentHandle = handle || null;
+    syncSelect(label);
+
+    board = MZTask.mount('#tasks', { title: '我的任务', adapter: adapter, storageKey: 'mztask.test' });
+    window.board = board;
+    await board.ready;
+    if(opts.migrate && prevTasks.length && board.getTasks().length === 0){
+      board.replace(prevTasks);
+      tip.textContent = '已把 ' + prevTasks.length + ' 条任务带到新存储';
+    }
+    wireAnnotate();
+    return board.ready;
+  }
+
+  /* 选完方式：文件型只显示「打开 / 新建」按钮，不弹框 */
+  function showFileControls(label){
+    openBtn.hidden = false;
+    if(label === 'jsfile'){
+      openBtn.textContent = '打开已有 data.js';
+      newBtn.textContent = '新建 data.js';
+      newBtn.hidden = false;
+    }else if(label === 'file'){
+      openBtn.textContent = '打开已有 jsonl';
+      newBtn.textContent = '新建 jsonl';
+      newBtn.hidden = false;
+    }else{
+      openBtn.textContent = '选择或新建目录';
+      newBtn.hidden = true;
+    }
+    tip.textContent = '已选「' + label + '」，点按钮连接；取消就还停在上一种方式';
+    sub.textContent = '还未连接文件，连接后才会切换过去';
+  }
+  function hideFileControls(){ openBtn.hidden = true; newBtn.hidden = true; }
+
+  async function adopt(handle, label, opts){
+    if(!(await MZTask.ensurePermission(handle))){ tip.textContent = '没拿到权限'; return false; }
+    if(label === 'jsfile') await MZTask.saveHandle('jsfile', handle);
+    var adapter = label === 'jsfile' ? MZTask.adapters.jsfile({ handle: handle })
+                : label === 'file'   ? MZTask.adapters.file({ handle: handle })
+                :                      MZTask.adapters.dir({ handle: handle });
+    hideFileControls();
+    await mountWith(adapter, label, handle, opts);
+    sub.textContent = describe(label, handle);
+    return true;
+  }
+
+  storeSel.onchange = async function(){
+    var v = storeSel.value;
+    if(isFileKind(v)){ showFileControls(v); return; }
+    hideFileControls();
+    if(v === 'http') await mountWith(MZTask.adapters.http({ baseUrl: '/api/tasks' }), 'http', null, { migrate: true });
+    else await mountWith(v, v, null, { migrate: true });
+    sub.textContent = describe(v);
+  };
+
+  /* 打开已有 */
+  openBtn.onclick = async function(){
+    var v = storeSel.value;
+    try{
+      var h = (v === 'dir') ? await MZTask.pickDir() : await MZTask.openFile();
+      await adopt(h, v, { migrate: true });
+    }catch(e){
+      if(e && e.name === 'AbortError'){ tip.textContent = '已取消，仍停在上一种方式'; return; }
+      tip.textContent = '打开失败：' + (e && e.message || e);
+    }
+  };
+
+  /* 新建：把当前任务写进新文件 */
+  newBtn.onclick = async function(){
+    var v = storeSel.value;
+    try{
+      var name = v === 'jsfile' ? 'mztask-data.js' : 'mytasks.jsonl';
+      var h = await MZTask.pickFile(name);
+      var tasks = board.getTasks();
+      var adapter = v === 'jsfile' ? MZTask.adapters.jsfile({ handle: h })
+                  :                  MZTask.adapters.file({ handle: h });
+      await adapter.save({ tasks: tasks, seq: tasks.length + 1 });
+      await adopt(h, v);
+    }catch(e){
+      if(e && e.name === 'AbortError'){ tip.textContent = '已取消'; return; }
+      tip.textContent = '新建失败：' + (e && e.message || e);
+    }
+  };
+
+  /* 启动：先 local；上次连过 data.js 且有权限就自动接上 */
+  (async function boot(){
+    await mountWith('local', 'local');
+    sub.textContent = describe('local');
+    try{
+      var h = await MZTask.loadHandle('jsfile');
+      if(!h) return;
+      var st = await h.queryPermission({ mode: 'readwrite' });
+      if(st === 'granted'){
+        await mountWith(MZTask.adapters.jsfile({ handle: h }), 'jsfile', h);
+        sub.textContent = describe('jsfile', h);
+      }
+    }catch(e){}
+  })();
+</script>
+</body>
+</html>
