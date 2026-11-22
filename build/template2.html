@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -536,7 +536,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r129</div>
+        <div class="ver">V5.3 · r130</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -554,7 +554,8 @@ window.MZ3 = (function(){
         <span class="sep"></span>
         <span class="gl">换算</span>
         <input id="g_wan" type="number" min="0" step="any" placeholder="万两">
-        <span>万两 →</span><b id="g_wan_y">—</b><span>元（到手）</span>
+        <span>万两 →</span><b id="g_wan_y">—</b><span>元（应挂）</span>
+        <b id="g_wan_net" style="color:#9fb0ff">—</b><span>元（到手）</span>
       </div>
     </div>
 
@@ -3737,8 +3738,8 @@ setTimeout(fitPanel,300);
       </select>
     </div>
     <div class="f"><span class="lbl">日期</span><input id="lg_date" type="date"></div>
-    <div class="f"><span class="lbl">区</span><input id="lg_zone" placeholder="例：上海1区"></div>
-    <div class="f"><span class="lbl">角色</span><input id="lg_char" placeholder="例：北俱小霸王1"></div>
+    <div class="f"><span class="lbl">区</span><input id="lg_zone" list="lg_zone_list" placeholder="例：上海1区"><datalist id="lg_zone_list"></datalist></div>
+    <div class="f"><span class="lbl">角色</span><input id="lg_char" list="lg_char_list" placeholder="例：北俱小霸王1"><datalist id="lg_char_list"></datalist></div>
     <div class="f" id="lg_f_wan"><span class="lbl">数量</span><input id="lg_wan" type="number" min="0" step="any" placeholder="万两"><span class="lbl">万两</span></div>
     <div class="f" id="lg_f_price"><span class="lbl">单价</span><input id="lg_price" type="number" min="0" step="0.0001"><span class="lbl">元/万两</span></div>
     <div class="f" id="lg_f_item"><span class="lbl">物品</span><input id="lg_item" placeholder="例：高级兽诀"></div>
@@ -3751,7 +3752,7 @@ setTimeout(fitPanel,300);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:9px">
     <button class="btn" id="lg_add">记一笔</button>
-    <span class="lg-note" id="lg_hint">卖币：填数量 + 单价，上面直接告诉你该挂多少钱（卖价）；到手的钱 = 卖价 × 0.95。</span>
+    <span class="lg-note" id="lg_hint">填数量和单价，上面出应挂卖价。</span>
   </div>
 </div>
 
@@ -3783,10 +3784,9 @@ setTimeout(fitPanel,300);
 <div class="grp">
   <div class="cap">说明</div>
   <div class="lg-note">
-    1. 所有"卖"的实收都自动 ×0.95（藏宝阁 5% 手续费），不用你自己减；<br>
-    2. 卖币的单价默认取顶部「藏宝阁单价」，也可以单笔改（行情波动时只影响这一笔）；<br>
-    3. 数据按自然月分桶保存，只保留最近 24 个月（更早的按月汇总归档），不会越用越卡；<br>
-    4. 数据存在本机 localhost 存储里，清缓存会丢 —— 重要数据建议定期点下面「导出」存一份。
+    1. 卖币的单价默认取顶部「藏宝阁单价」，也可以单笔改（行情波动时只影响这一笔）；<br>
+    2. 数据按自然月分桶保存，只保留最近 24 个月（更早的按月汇总归档），不会越用越卡；<br>
+    3. 数据存在本机存储里，清缓存会丢 —— 重要数据建议定期点下面「导出」存一份。
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
     <button class="btn gray" id="lg_export">导出 JSON</button>
@@ -3837,8 +3837,23 @@ setTimeout(fitPanel,300);
     return (d.months && d.months[cursor]) || [];
   }
 
+  /* 区 / 角色：把历史里出现过的填进 datalist，下次直接选，不用手打 */
+  function fillSuggest(d){
+    const zones = [], chars = [], seenZ = {}, seenC = {};
+    Object.keys(d.months || {}).forEach(function(k){
+      (d.months[k] || []).forEach(function(r){
+        if(r.zone && !seenZ[r.zone]){ seenZ[r.zone] = 1; zones.push(r.zone); }
+        if(r.char && !seenC[r.char]){ seenC[r.char] = 1; chars.push(r.char); }
+      });
+    });
+    const zl = $('lg_zone_list'), cl = $('lg_char_list');
+    if(zl) zl.innerHTML = zones.map(function(z){ return '<option value="' + esc(z) + '">'; }).join('');
+    if(cl) cl.innerHTML = chars.map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
+  }
+
   function render(){
     const d = data();
+    fillSuggest(d);
     const list = (d.months && d.months[cursor]) || [];
     $('lg_mon').textContent = cursor.replace('-', ' 年 ') + ' 月';
 
@@ -3908,8 +3923,8 @@ setTimeout(fitPanel,300);
     $('lg_f_amount').style.display = (t === 'coin') ? 'none' : '';
     $('lg_lbl_amount').textContent = t === 'card' ? '充值金额' : '卖价';
     $('lg_hint').textContent = t === 'coin'
-      ? '卖币：填数量 + 单价，上面直接告诉你该挂多少钱（卖价）；到手的钱 = 卖价 × 0.95。'
-      : (t === 'item' ? '卖物品：实收 = 卖价 × 0.95。' : '充点卡：按支出计，金额填你充了多少元。');
+      ? '填数量和单价，上面出应挂卖价。'
+      : (t === 'item' ? '金额填卖物品的卖价。' : '金额填实际充值多少元。');
     if(t === 'coin' && !$('lg_price').value) $('lg_price').value = goldPrice() || '';
     calcPreview();
   }
@@ -6743,7 +6758,8 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     el('g_q3').textContent = p ? (3000 * p).toFixed(2) : '—';
     el('g_q3b').textContent = p ? (3000 * p * (1 - FEE)).toFixed(2) : '—';
     const wan = num(el('g_wan') ? el('g_wan').value : 0);
-    el('g_wan_y').textContent = (wan && net) ? (wan * net).toFixed(2) : '—';
+    el('g_wan_y').textContent = (wan && p) ? (wan * p).toFixed(2) : '—';
+    if(el('g_wan_net')) el('g_wan_net').textContent = (wan && net) ? (wan * net).toFixed(2) : '—';
   }
   function savePrice(v){
     const g = gold();
