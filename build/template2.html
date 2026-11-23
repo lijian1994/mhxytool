@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r139</div>
+        <div class="ver">V5.3 · r140</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -555,18 +555,17 @@ window.MZ3 = (function(){
           <span class="gl">金价</span><b id="g_price">—</b><span>元/万两</span>
           <span class="gl">开服</span><b id="g_age">—</b>
           <span class="sep"></span>
-          <span class="gl">到手（扣 5%）</span><b id="g_net">—</b><span>元/万两</span>
-        </div>
-        <div class="row">
-          <span class="q">100 元 = <b id="g_q1">—</b> 万两</span>
-          <span class="q">200 元 = <b id="g_q2">—</b> 万两</span>
-          <span class="q">3000 万两 = <b id="g_q3">—</b> 元（到手 <b id="g_q3b">—</b>）</span>
-          <span class="sep"></span>
           <span class="gl">换算</span>
           <input id="g_wan" type="number" min="0" step="any" placeholder="万两">
           <span>万两 →</span><b id="g_wan_y">—</b><span>元（应挂）</span>
           <b id="g_wan_net" style="color:#9fb0ff">—</b><span>元（到手）</span>
         </div>
+        <div class="row">
+          <span class="q">100 元 = <b id="g_q1">—</b> 万两</span>
+          <span class="q">200 元 = <b id="g_q2">—</b> 万两</span>
+          <span class="q">3000 万两 = <b id="g_q3">—</b> 元（到手 <b id="g_q3b">—</b>）</span>
+        </div>
+      </div>
     </div>
 
 <div class="tabs" id="tabs">
@@ -6895,7 +6894,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     const net = p * (1 - FEE);
     const box = el('g_price');
     if(box) box.textContent = (window.__priceText ? window.__priceText(p) : (p ? p.toFixed(4) : '—'));
-    el('g_net').textContent = net ? net.toFixed(4) : '—';
+    if(el('g_net')) el('g_net').textContent = net ? net.toFixed(4) : '—';
     el('g_q1').textContent = p ? (100 / p).toFixed(0) : '—';
     el('g_q2').textContent = p ? (200 / p).toFixed(0) : '—';
     el('g_q3').textContent = p ? (3000 * p).toFixed(2) : '—';
