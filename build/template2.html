@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r144</div>
+        <div class="ver">V5.3 · r145</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -7481,13 +7481,18 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     if(!r) return;
     $('jd_char_name').value = r.name || '';
     $('jd_msg').textContent = r.serverName ? ('区服：' + r.serverName) : '';
-    /* 账号下拉：这个区服下能选的账号 */
+    /* 账号下拉：带上该账号关联的区服，方便识别 */
     const sel = $('jd_char_account');
     if(sel){
-      let accounts = [];
-      try{ accounts = window.__assets ? window.__assets.D().accounts : []; }catch(e){}
-      sel.innerHTML = '<option value="">未绑定</option>' + accounts.map(function(a){
-        return '<option value="' + a.id + '"' + (a.id === r.accountId ? ' selected' : '') + '>' + a.name + '</option>';
+      let d = { accounts: [], servers: [] };
+      try{ d = window.__assets ? window.__assets.D() : d; }catch(e){}
+      sel.innerHTML = '<option value="">未绑定</option>' + d.accounts.map(function(a){
+        const sn = (a.serverIds || []).map(function(id){
+          const sv = (d.servers || []).find(function(x){ return x.id === id; });
+          return sv ? sv.name : '';
+        }).filter(Boolean).join('、');
+        return '<option value="' + a.id + '"' + (a.id === r.accountId ? ' selected' : '') + '>'
+          + a.name + (sn ? '（' + sn + '）' : '') + '</option>';
       }).join('');
       if(r.accountId) sel.value = r.accountId;
     }
