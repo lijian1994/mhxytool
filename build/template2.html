@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r147</div>
+        <div class="ver">V5.3 · r148</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -1492,7 +1492,7 @@ window.MZ3 = (function(){
   var XIANG = 1800;               /* 捉妖香 30 分钟 */
   var SPD_MIN = 200, SPD_MAX = 10000;
 
-  var state = {c:0, e:0, at:null, cal:false, xiang:null, speed:1000, remind:true, mini:false};
+  var state = {c:0, e:0, at:null, cal:false, xiang:null, speed:1000, remind:false, mini:false};
   var lastNext = null;            /* 上一次 tick 算出来的「离下次刷价」秒数，用来抓穿过刷价点 */
   var lastSc = -1;
   var timer = null;
@@ -1510,6 +1510,11 @@ window.MZ3 = (function(){
       if(typeof s.speed === 'number' && isFinite(s.speed)) state.speed = Math.max(SPD_MIN, Math.min(SPD_MAX, s.speed));
       if(typeof s.remind === 'boolean') state.remind = s.remind;
       if(typeof s.mini === 'boolean') state.mini = s.mini;
+      /* 捉妖香早就过期了（比如昨天点的）：静默清掉，别在刷新那一刻补一声提醒 */
+      if(state.xiang != null && (Date.now() - state.xiang) / 1000 >= XIANG){
+        state.xiang = null;
+        save();
+      }
     }catch(e){}
   }
 
