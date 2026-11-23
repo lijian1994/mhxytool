@@ -542,7 +542,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r136</div>
+        <div class="ver">V5.3 · r137</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -6855,6 +6855,7 @@ function showTab(t){
   try{ if(window.MZ3){ var u=MZ3.read('ui')||{}; u.lastTab=t; MZ3.write('ui',u); } }catch(e){}
   try{
     if(t==='task' && window.annoRenderList){ try{ window.annoRenderList(); }catch(e){} }
+    if(t==='ledger' && window.lgFillCharPick){ try{ window.lgFillCharPick(); }catch(e){} }
     if(t==='jzb'){
       var imgs=document.querySelectorAll('#jzb img[data-src]');
       for(var i=0;i<imgs.length;i++){ imgs[i].src=imgs[i].dataset.src; imgs[i].removeAttribute('data-src'); }
@@ -7265,6 +7266,8 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   window.__assetsChars = function(){ return D().chars; };
   render();
   refreshTopServers();
+  /* assets 比 ledger 晚加载，这里补一次，让记账页的区服/角色下拉有数据 */
+  if(window.lgFillCharPick){ try{ window.lgFillCharPick(); }catch(e){} }
 })();
 </script>
 
