@@ -542,7 +542,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r137</div>
+        <div class="ver">V5.3 · r138</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -6891,7 +6891,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     const p = num(g.pricePerWan);
     const net = p * (1 - FEE);
     const box = el('g_price');
-    if(box) box.textContent = p ? p.toFixed(4) : '—';
+    if(box) box.textContent = (window.__priceText ? window.__priceText(p) : (p ? p.toFixed(4) : '—'));
     el('g_net').textContent = net ? net.toFixed(4) : '—';
     el('g_q1').textContent = p ? (100 / p).toFixed(0) : '—';
     el('g_q2').textContent = p ? (200 / p).toFixed(0) : '—';
@@ -6923,6 +6923,14 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
   function f2(n){ if(n == null || !isFinite(n)) return '—'; return (Math.round(n * 100) / 100).toFixed(2); }
+  /* 金价按实际值显示（去掉末尾 0，最多 4 位），避免 0.1698 被显示成 0.17 后换算对不上 */
+  function priceText(p){
+    const n = Number(p);
+    if(!isFinite(n) || n <= 0) return '—';
+    const s = n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+    return s || '0';
+  }
+  window.__priceText = priceText;
 
   function D(){
     const d = MZ3.read(KEY) || {};
@@ -6992,7 +7000,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       return '<tr>'
         + '<td><b>' + esc(sv.name) + '</b></td>'
         + '<td class="r">' + n + '</td>'
-        + '<td><b class="gold">' + (p ? f2(p) : '—') + '</b> <span class="unit">元/万两</span>' + conv + '</td>'
+        + '<td><b class="gold">' + priceText(p) + '</b> <span class="unit">元/万两</span>' + conv + '</td>'
         + '<td>' + (sv.openDate || '—') + '</td>'
         + '<td class="r">' + (days === null ? '—' : days + ' 天') + '</td>'
         + '<td>' + ageGroup(sv.openDate) + '</td>'
@@ -7247,7 +7255,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     }
     const p = Number(sv && sv.price) || 0;
     const gin = $('g_price');
-    if(gin) gin.textContent = p ? p.toFixed(4) : '—';
+    if(gin) gin.textContent = window.__priceText ? window.__priceText(p) : (p ? p.toFixed(4) : '—');
     if(sv){
       const g = (MZ3.read('global') || {}).gold || {};
       g.pricePerWan = p;
