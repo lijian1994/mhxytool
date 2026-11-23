@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r146</div>
+        <div class="ver">V5.3 · r147</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -7085,21 +7085,17 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         + '<td><div class="op"><button class="del" data-op="delChar" data-id="' + c.id + '">删</button></div></td></tr>';
     }).join('') : '<tr><td colspan="6" class="empty">还没有角色</td></tr>';
 
-    /* --- 账号：关联区服由角色推导 --- */
+    /* --- 账号：只有名字和角色数，不带区服 --- */
     const accRows = d.accounts.length ? d.accounts.map(function(a){
       const cs = d.chars.filter(function(c){ return c.accountId === a.id; });
-      const sids = {};
-      cs.forEach(function(c){ if(c.serverId) sids[c.serverId] = 1; });
-      const names = servers.filter(function(sv){ return sids[sv.id]; }).map(function(sv){ return sv.name; });
       return '<tr>'
         + '<td><b>' + esc(a.name) + '</b></td>'
         + '<td class="r">' + cs.length + '</td>'
-        + '<td>' + (names.join('、') || '—') + '</td>'
         + '<td><div class="op">'
         + '<button data-op="editAccount" data-id="' + a.id + '">改</button>'
         + '<button class="del" data-op="delAccount" data-id="' + a.id + '">删</button>'
         + '</div></td></tr>';
-    }).join('') : '<tr><td colspan="4" class="empty">还没有账号</td></tr>';
+    }).join('') : '<tr><td colspan="3" class="empty">还没有账号</td></tr>';
 
     const srvTable = '<table class="as-tab"><thead><tr>'
       + '<th>区服名</th><th class="r" style="width:70px">角色数</th><th style="width:210px">金价</th>'
@@ -7111,7 +7107,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       + '<th style="width:200px">所属账号</th><th style="width:130px">区服</th><th style="width:60px">操作</th>'
       + '</tr></thead><tbody>' + charRows + '</tbody></table>';
     const accTable = '<table class="as-tab"><thead><tr>'
-      + '<th>账号名</th><th class="r" style="width:80px">角色数</th><th>关联区服（按角色推导）</th><th style="width:80px">操作</th>'
+      + '<th>账号名</th><th class="r" style="width:80px">角色数</th><th style="width:80px">操作</th>'
       + '</tr></thead><tbody>' + accRows + '</tbody></table>';
 
     box.innerHTML =
