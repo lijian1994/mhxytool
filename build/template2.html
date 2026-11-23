@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r141</div>
+        <div class="ver">V5.3 · r142</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -7098,9 +7098,10 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     ac = ac || {};
     const d = D();
     return '<div class="f"><label>账号名</label><input id="f_name" value="' + esc(ac.name || '') + '" placeholder="例：主号"></div>'
-      + '<div class="f"><label>所属区服</label><select id="f_servers" multiple size="' + Math.min(6, Math.max(2, d.servers.length)) + '">'
+      + '<div class="f"><label>关联区服</label><select id="f_servers" multiple size="' + Math.min(6, Math.max(2, d.servers.length)) + '">'
       + d.servers.map(function(sv){ return '<option value="' + sv.id + '"' + ((ac.serverIds || []).indexOf(sv.id) >= 0 ? ' selected' : '') + '>' + esc(sv.name) + '</option>'; }).join('')
-      + '</select></div><div class="f"><span class="hint">可多选（按住 Ctrl）</span></div>';
+      + '</select></div>'
+      + '<div class="f"><span class="hint">可多选（按住 Ctrl）。账号和区服是关联关系，不是归属：一个账号可以在多个区服有角色，一个区服也可以有多个账号。真正的关联由「角色」上的区服+账号决定。</span></div>';
   }
   function charForm(c, serverId){
     c = c || {};
@@ -7159,7 +7160,10 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     });
   };
   $('as_addAccount').onclick = function(){
-    if(!D().servers.length){ $('as_msg').textContent = '先加一个区服'; return; }
+    if(!D().servers.length){
+      $('as_msg').textContent = '还没有区服。先点「+ 区服」建一个，账号才能和区服关联起来（一个账号可以在多个区服有角色）';
+      return;
+    }
     open('新增账号', accountForm(), function(){
       const v = readAccountForm();
       if(!v.name){ $('as_msg').textContent = '账号名不能为空'; return false; }
