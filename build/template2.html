@@ -323,7 +323,7 @@ body.app-ready .body>section{visibility:visible}
 (function(){
   var raw=(location.hash||'').replace('#','');
   var t = raw.indexOf('tab=')===0 ? raw.slice(4) : raw;
-  var OK={daomai:1,shouyi:1,quiz:1,renwu:1,jiadian:1,jzb:1,baoshi:1,paoshang:1,ledger:1,task:1,about:1};
+  var OK={daomai:1,shouyi:1,quiz:1,renwu:1,jiadian:1,jzb:1,baoshi:1,paoshang:1,ledger:1,assets:1,task:1,about:1};
   if(t==='gonglue') t='renwu';   // 梦幻常识已并入常用查询
   if(!OK[t]){
     try{ t = localStorage.getItem('mz.lastTab') || 'renwu'; }catch(e){ t='renwu'; }
@@ -536,15 +536,18 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r130</div>
+        <div class="ver">V5.3 · r131</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
       </div>
       <div class="tb-gold">
-        <span class="gl">藏宝阁单价</span>
-        <input id="g_price" type="number" min="0" step="0.0001" title="藏宝阁挂单价，元/万两">
+        <span class="gl">区服</span>
+        <select id="g_server" title="选一个区服，金价和开服档位自动带出"></select>
+        <span class="gl">金价</span>
+        <input id="g_price" type="number" min="0" step="0.0001" readonly title="来自所选区服，去「账号资产」里改" style="width:88px">
         <span>元/万两</span>
+        <span class="gl">开服</span><b id="g_age">—</b>
         <span class="sep"></span>
         <span class="gl">到手（扣 5%）</span><b id="g_net">—</b><span>元/万两</span>
         <span class="sep"></span>
@@ -569,6 +572,7 @@ window.MZ3 = (function(){
       <button data-t="baoshi"><span class="ic">💎</span>宝石合成</button>
       <button data-t="paoshang"><span class="ic">⏱</span>梦幻时钟</button>
       <button data-t="ledger"><span class="ic">💰</span>收支记账</button>
+      <button data-t="assets"><span class="ic">🏦</span>账号资产</button>
       <button data-t="task"><span class="ic">📋</span>任务进度</button>
       <button data-t="about"><span class="ic">ℹ️</span>关于</button>
     </div>
@@ -3738,6 +3742,7 @@ setTimeout(fitPanel,300);
       </select>
     </div>
     <div class="f"><span class="lbl">日期</span><input id="lg_date" type="date"></div>
+    <div class="f"><span class="lbl">选角色</span><select id="lg_char_pick" title="从账号资产里选，自动带出区服和金价"><option value="">— 手动填 —</option></select></div>
     <div class="f"><span class="lbl">区</span><input id="lg_zone" list="lg_zone_list" placeholder="例：上海1区"><datalist id="lg_zone_list"></datalist></div>
     <div class="f"><span class="lbl">角色</span><input id="lg_char" list="lg_char_list" placeholder="例：北俱小霸王1"><datalist id="lg_char_list"></datalist></div>
     <div class="f" id="lg_f_wan"><span class="lbl">数量</span><input id="lg_wan" type="number" min="0" step="any" placeholder="万两"><span class="lbl">万两</span></div>
@@ -3955,6 +3960,16 @@ setTimeout(fitPanel,300);
     const note = ($('lg_note').value || '').trim();
     const rec = { id: 'l' + Date.now() + Math.floor(Math.random() * 1000), ts: new Date(date + 'T00:00:00').getTime(), date: date, type: t, zone: zone, char: char, note: note };
 
+    const pick = $('lg_char_pick');
+    if(pick && pick.value){
+      const parts = pick.value.split('|');
+      rec.charId = parts[0] || '';
+      rec.serverId = parts[1] || '';
+      const opt = pick.options[pick.selectedIndex];
+      const z = (opt && opt.dataset && opt.dataset.zone) || '';
+      if(z && !rec.zone) rec.zone = z;
+    }
+
     if(t === 'coin'){
       const wan = Number($('lg_wan').value), price = Number($('lg_price').value) || goldPrice();
       if(!(wan > 0)){ $('lg_wan').focus(); return; }
@@ -3962,6 +3977,14 @@ setTimeout(fitPanel,300);
       rec.wan = wan; rec.price = price;
       rec.amount = wan * price;
       rec.net = rec.amount * (1 - FEE);
+      /* 这一笔记的是一个区的金价：回写这个区的当前金价 */
+      if(rec.serverId && window.__assets){
+        try{
+          const ad = window.__assets.D();
+          const sv = ad.servers.find(function(x){ return x.id === rec.serverId; });
+          if(sv && price > 0){ sv.price = price; MZ3.write('assets', ad); window.__assets.refreshTopServers(); }
+        }catch(e){}
+      }
     } else if(t === 'item'){
       const amount = Number($('lg_amount').value);
       if(!(amount > 0)){ $('lg_amount').focus(); return; }
@@ -3985,6 +4008,7 @@ setTimeout(fitPanel,300);
     $('lg_wan').value = ''; $('lg_amount').value = ''; $('lg_item').value = ''; $('lg_note').value = '';
     calcPreview();
     render();
+    if(window.lgFillCharPick) try{ window.lgFillCharPick(); }catch(e){}
   }
 
   function del(id){
@@ -4021,6 +4045,38 @@ setTimeout(fitPanel,300);
     render();
   }
 
+  /* 角色下拉：来自账号资产，选中后带出区服名和金价 */
+  function fillCharPick(){
+    const sel = $('lg_char_pick');
+    if(!sel) return;
+    let d = { servers: [], chars: [] };
+    try{ d = window.__assets ? window.__assets.D() : d; }catch(e){}
+    const byName = {};
+    d.servers.forEach(function(sv){ byName[sv.id] = sv; });
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">— 手动填 —</option>' + d.chars.map(function(c){
+      const sv = byName[c.serverId];
+      return '<option value="' + c.id + '|' + c.serverId + '" data-zone="' + (sv ? sv.name : '') + '" data-price="' + (sv ? sv.price : '') + '">'
+        + (sv ? sv.name + ' · ' : '') + c.name + '</option>';
+    }).join('');
+    if(keep) sel.value = keep;
+  }
+  const pickEl = $('lg_char_pick');
+  if(pickEl) pickEl.addEventListener('change', function(){
+    const opt = pickEl.options[pickEl.selectedIndex];
+    if(!opt || !pickEl.value) return;
+    const zone = opt.dataset.zone || '';
+    const price = opt.dataset.price || '';
+    if(zone) $('lg_zone').value = zone;
+    const nm = (opt.textContent || '').split(' · ');
+    if(nm.length > 1) $('lg_char').value = nm[nm.length - 1];
+    if(price) $('lg_price').value = price;
+    calcPreview();
+  });
+
+  window.lgFillCharPick = fillCharPick;
+  fillCharPick();
+
   window.lgImportJson = importJson;
   $('lg_add').addEventListener('click', add);
   $('lg_wan').addEventListener('input', calcPreview);
@@ -4056,6 +4112,57 @@ setTimeout(fitPanel,300);
 })();
 </script>
 </section>
+
+<section id="assets">
+<style>
+#assets .as-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+#assets .as-note{color:var(--dim);font-size:11.5px}
+#assets .srv{margin-bottom:14px;border:1px solid #26304f;border-radius:10px;overflow:hidden;background:#141a2a}
+#assets .srv-hd{display:flex;gap:10px;align-items:center;padding:9px 12px;background:#1b2440;flex-wrap:wrap}
+#assets .srv-hd b{color:#e8c37a;font-size:13px}
+#assets .srv-hd .meta{color:#8b96b8;font-size:11.5px}
+#assets .srv-hd .sp{flex:1}
+#assets .srv-hd .op button{background:none;border:0;color:#8b96b8;cursor:pointer;font-size:12px;padding:2px 6px}
+#assets .srv-hd .op button:hover{color:#e8c37a}
+#assets table{width:100%;border-collapse:collapse;font-size:12.5px}
+#assets th,#assets td{padding:7px 12px;border-bottom:1px solid #232b47;text-align:left}
+#assets th{color:#8b96b8;font-weight:600;background:#151b2b;font-size:11.5px}
+#assets tr:last-child td{border-bottom:0}
+#assets td.r,#assets th.r{text-align:right}
+#assets .op{display:flex;gap:6px}
+#assets .op button{background:none;border:0;color:#8b96b8;cursor:pointer;font-size:12px;padding:2px 4px}
+#assets .op button:hover{color:#e8c37a}
+#assets .op button.del:hover{color:#ff8b8b}
+#assets .empty{color:#6f7a99;padding:14px;text-align:center;font-size:12.5px}
+#assets .mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:9997;align-items:center;justify-content:center}
+#assets .mask.on{display:flex}
+#assets .box{width:min(580px,94vw);max-height:86vh;overflow:auto;background:#151b2b;border:1px solid #3d486e;border-radius:12px;padding:16px}
+#assets .box h3{margin:0 0 12px;font-size:14px;color:#e8c37a}
+#assets .f{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+#assets .f label{width:74px;color:#8b96b8;font-size:12px;flex:none}
+#assets .f input,#assets .f select{flex:1;background:#232b47;border:1px solid #3d486e;border-radius:6px;padding:6px 9px;color:#e6ecff;font-size:12.5px;font-family:inherit}
+#assets .f .hint{color:#6f7a99;font-size:11px}
+#assets .b{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+</style>
+
+<div class="grp">
+  <div class="cap">账号资产 <span class="tag ok">区服 / 账号 / 角色</span></div>
+  <div class="as-bar">
+    <button class="btn" id="as_addServer">+ 区服</button>
+    <button class="btn gray" id="as_addAccount">+ 账号</button>
+    <button class="btn gray" id="as_addChar">+ 角色</button>
+    <span class="as-note" id="as_msg">角色按区服分组；体活由等级和养生/健身算</span>
+  </div>
+  <div id="as_body"></div>
+</div>
+
+<div class="mask" id="as_mask"><div class="box">
+  <h3 id="as_title">新增</h3>
+  <div id="as_form"></div>
+  <div class="b"><button class="btn" id="as_ok">保存</button><button class="btn gray" id="as_cancel">取消</button></div>
+</div></div>
+</section>
+
 <section id="task">
 <style>
 #task .tk-form{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:8px;margin:0 0 8px}
@@ -6777,6 +6884,313 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   paint();
 })();
 </script>
+
+<script>
+/* ===== 账号资产（r131）：区服 / 账号 / 角色 ===== */
+(function(){
+  const KEY = 'assets';
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+  function f2(n){ if(n == null || !isFinite(n)) return '—'; return (Math.round(n * 100) / 100).toFixed(2); }
+
+  function D(){
+    const d = MZ3.read(KEY) || {};
+    d.servers = d.servers || []; d.accounts = d.accounts || []; d.chars = d.chars || [];
+    d.seq = d.seq || 1;
+    return d;
+  }
+  function save(d){ MZ3.write(KEY, d); }
+  function nid(d, p){ const id = p + (d.seq++); save(d); return id; }
+
+  function serverOf(d, id){ return d.servers.find(function(x){ return x.id === id; }); }
+  function accountOf(d, id){ return d.accounts.find(function(x){ return x.id === id; }); }
+  function charOf(d, id){ return d.chars.find(function(x){ return x.id === id; }); }
+
+  /* 开服档位：按日期自动算 */
+  function ageGroup(openDate){
+    if(!openDate) return '—';
+    const t = new Date(openDate + 'T00:00:00').getTime();
+    if(!isFinite(t)) return '—';
+    const days = (Date.now() - t) / 86400000;
+    if(days <= 365) return '一年内';
+    if(days <= 365 * 3) return '一年外三年内';
+    return '三年外';
+  }
+
+  /* 体活上限：50 + 等级×5 + 养生/健身×4 */
+  function tihuo(build){
+    const lv = Number(build && build.level) || 0;
+    const ys = Number(build && build.skills && build.skills.yangsheng) || 0;
+    const js = Number(build && build.skills && build.skills.jianshen) || 0;
+    return { hl: 50 + lv * 5 + ys * 4, tl: 50 + lv * 5 + js * 4 };
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render(){
+    const d = D();
+    const box = $('as_body');
+    if(!box) return;
+    if(!d.servers.length){
+      box.innerHTML = '<div class="empty">还没有区服。点「+ 区服」先建一个。</div>';
+      return;
+    }
+    box.innerHTML = d.servers.map(function(sv){
+      const chars = d.chars.filter(function(c){ return c.serverId === sv.id; });
+      const rows = chars.length ? chars.map(function(c){
+        const acc = accountOf(d, c.accountId);
+        const th = tihuo(c.build);
+        const lv = (c.build && c.build.level) || '';
+        return '<tr>'
+          + '<td><b>' + esc(c.name) + '</b></td>'
+          + '<td class="r">' + (lv || '—') + '</td>'
+          + '<td class="r">' + (th.hl || '—') + ' / ' + (th.tl || '—') + '</td>'
+          + '<td>' + esc(acc ? acc.name : '未绑定') + '</td>'
+          + '<td><div class="op">'
+          + '<button data-op="editChar" data-id="' + c.id + '">改</button>'
+          + '<button class="del" data-op="delChar" data-id="' + c.id + '">删</button>'
+          + '</div></td></tr>';
+      }).join('') : '<tr><td colspan="5" class="empty">这个区还没有角色</td></tr>';
+
+      const accNames = d.accounts.filter(function(a){ return (a.serverIds || []).indexOf(sv.id) >= 0; })
+        .map(function(a){ return a.name; }).join('、');
+
+      return '<div class="srv">'
+        + '<div class="srv-hd">'
+        + '<b>' + esc(sv.name) + '</b>'
+        + '<span class="meta">金价 ' + (sv.price ? f2(sv.price) : '—') + ' 元/万两</span>'
+        + '<span class="meta">开服 ' + (sv.openDate || '—') + ' · ' + ageGroup(sv.openDate) + '</span>'
+        + '<span class="meta">账号 ' + (accNames || '—') + '</span>'
+        + '<span class="sp"></span>'
+        + '<span class="op">'
+        + '<button data-op="addChar" data-id="' + sv.id + '">+ 角色</button>'
+        + '<button data-op="editServer" data-id="' + sv.id + '">改区服</button>'
+        + '<button class="del" data-op="delServer" data-id="' + sv.id + '">删区服</button>'
+        + '</span></div>'
+        + '<table><thead><tr><th>角色</th><th class="r">等级</th><th class="r">体活上限</th><th>所属账号</th><th style="width:90px">操作</th></tr></thead>'
+        + '<tbody>' + rows + '</tbody></table></div>';
+    }).join('');
+  }
+
+  /* ---------- 弹层 ---------- */
+  let pending = null;
+  function open(title, formHtml, onOk){
+    $('as_title').textContent = title;
+    $('as_form').innerHTML = formHtml;
+    $('as_mask').classList.add('on');
+    pending = onOk;
+  }
+  function close(){ $('as_mask').classList.remove('on'); pending = null; }
+
+  function serverForm(sv){
+    sv = sv || {};
+    return '<div class="f"><label>区服名</label><input id="f_name" value="' + esc(sv.name || '') + '" placeholder="例：上海1区"></div>'
+      + '<div class="f"><label>金价</label><input id="f_price" type="number" step="0.0001" value="' + (sv.price || '') + '" placeholder="元/万两"></div>'
+      + '<div class="f"><label>开服日期</label><input id="f_open" type="date" value="' + esc(sv.openDate || '') + '"></div>'
+      + '<div class="f"><span class="hint">档位按日期自动算：一年内 / 一年外三年内 / 三年外</span></div>';
+  }
+  function accountForm(ac){
+    ac = ac || {};
+    const d = D();
+    return '<div class="f"><label>账号名</label><input id="f_name" value="' + esc(ac.name || '') + '" placeholder="例：主号"></div>'
+      + '<div class="f"><label>所属区服</label><select id="f_servers" multiple size="' + Math.min(6, Math.max(2, d.servers.length)) + '">'
+      + d.servers.map(function(sv){ return '<option value="' + sv.id + '"' + ((ac.serverIds || []).indexOf(sv.id) >= 0 ? ' selected' : '') + '>' + esc(sv.name) + '</option>'; }).join('')
+      + '</select></div><div class="f"><span class="hint">可多选（按住 Ctrl）</span></div>';
+  }
+  function charForm(c, serverId){
+    c = c || {};
+    const d = D();
+    const b = c.build || {};
+    const sk = b.skills || {};
+    return '<div class="f"><label>角色名</label><input id="f_name" value="' + esc(c.name || '') + '"></div>'
+      + '<div class="f"><label>区服</label><select id="f_server">'
+      + d.servers.map(function(sv){ return '<option value="' + sv.id + '"' + ((c.serverId || serverId) === sv.id ? ' selected' : '') + '>' + esc(sv.name) + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div class="f"><label>账号</label><select id="f_account"><option value="">未绑定</option>'
+      + d.accounts.map(function(a){ return '<option value="' + a.id + '"' + (c.accountId === a.id ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div class="f"><label>等级</label><input id="f_level" type="number" min="0" max="175" value="' + (b.level || '') + '"></div>'
+      + '<div class="f"><label>养生</label><input id="f_ys" type="number" min="0" value="' + (sk.yangsheng || '') + '"></div>'
+      + '<div class="f"><label>健身</label><input id="f_js" type="number" min="0" value="' + (sk.jianshen || '') + '"></div>'
+      + '<div class="f"><span class="hint">体活上限 = 50 + 等级×5 + 养生/健身×4</span></div>';
+  }
+
+  function readServerForm(){
+    return {
+      name: ($('f_name').value || '').trim(),
+      price: Number($('f_price').value) || 0,
+      openDate: $('f_open').value || ''
+    };
+  }
+  function readAccountForm(){
+    const sel = $('f_servers');
+    return {
+      name: ($('f_name').value || '').trim(),
+      serverIds: Array.prototype.slice.call(sel.selectedOptions).map(function(o){ return o.value; })
+    };
+  }
+  function readCharForm(){
+    return {
+      name: ($('f_name').value || '').trim(),
+      serverId: $('f_server').value,
+      accountId: $('f_account').value,
+      build: {
+        level: Number($('f_level').value) || 0,
+        skills: { yangsheng: Number($('f_ys').value) || 0, jianshen: Number($('f_js').value) || 0 }
+      }
+    };
+  }
+
+  /* ---------- 事件 ---------- */
+  $('as_addServer').onclick = function(){
+    open('新增区服', serverForm(), function(){
+      const v = readServerForm();
+      if(!v.name){ $('as_msg').textContent = '区服名不能为空'; return false; }
+      const d = D();
+      d.servers.push({ id: nid(d, 's'), name: v.name, price: v.price, openDate: v.openDate });
+      save(d); render(); refreshTopServers();
+      $('as_msg').textContent = '已加区服：' + v.name;
+      return true;
+    });
+  };
+  $('as_addAccount').onclick = function(){
+    if(!D().servers.length){ $('as_msg').textContent = '先加一个区服'; return; }
+    open('新增账号', accountForm(), function(){
+      const v = readAccountForm();
+      if(!v.name){ $('as_msg').textContent = '账号名不能为空'; return false; }
+      const d = D();
+      d.accounts.push({ id: nid(d, 'a'), name: v.name, serverIds: v.serverIds });
+      save(d); render();
+      $('as_msg').textContent = '已加账号：' + v.name;
+      return true;
+    });
+  };
+  $('as_addChar').onclick = function(){
+    if(!D().servers.length){ $('as_msg').textContent = '先加一个区服'; return; }
+    open('新增角色', charForm(null, D().servers[0].id), function(){
+      const v = readCharForm();
+      if(!v.name){ $('as_msg').textContent = '角色名不能为空'; return false; }
+      const d = D();
+      d.chars.push({ id: nid(d, 'c'), name: v.name, serverId: v.serverId, accountId: v.accountId, build: v.build });
+      save(d); render();
+      $('as_msg').textContent = '已加角色：' + v.name;
+      return true;
+    });
+  };
+
+  $('as_body').addEventListener('click', function(e){
+    const btn = e.target && e.target.closest ? e.target.closest('button[data-op]') : null;
+    if(!btn) return;
+    const op = btn.dataset.op, id = btn.dataset.id;
+    const d = D();
+
+    if(op === 'addChar'){
+      open('新增角色', charForm(null, id), function(){
+        const v = readCharForm();
+        if(!v.name){ $('as_msg').textContent = '角色名不能为空'; return false; }
+        const dd = D();
+        dd.chars.push({ id: nid(dd, 'c'), name: v.name, serverId: v.serverId || id, accountId: v.accountId, build: v.build });
+        save(dd); render();
+        $('as_msg').textContent = '已加角色：' + v.name;
+        return true;
+      });
+      return;
+    }
+    if(op === 'editServer'){
+      const sv = serverOf(d, id);
+      if(!sv) return;
+      open('编辑区服', serverForm(sv), function(){
+        const v = readServerForm();
+        if(!v.name){ $('as_msg').textContent = '区服名不能为空'; return false; }
+        const dd = D(); const x = serverOf(dd, id);
+        x.name = v.name; x.price = v.price; x.openDate = v.openDate;
+        save(dd); render(); refreshTopServers();
+        $('as_msg').textContent = '已改区服：' + v.name;
+        return true;
+      });
+      return;
+    }
+    if(op === 'delServer'){
+      if(!confirm('删掉这个区服？它下面的角色会一起删掉。')) return;
+      const dd = D();
+      dd.servers = dd.servers.filter(function(x){ return x.id !== id; });
+      dd.chars = dd.chars.filter(function(c){ return c.serverId !== id; });
+      dd.accounts.forEach(function(a){ a.serverIds = (a.serverIds || []).filter(function(x){ return x !== id; }); });
+      save(dd); render(); refreshTopServers();
+      $('as_msg').textContent = '已删区服';
+      return;
+    }
+    if(op === 'editChar'){
+      const c = charOf(d, id);
+      if(!c) return;
+      open('编辑角色', charForm(c), function(){
+        const v = readCharForm();
+        if(!v.name){ $('as_msg').textContent = '角色名不能为空'; return false; }
+        const dd = D(); const x = charOf(dd, id);
+        x.name = v.name; x.serverId = v.serverId; x.accountId = v.accountId; x.build = v.build;
+        save(dd); render();
+        $('as_msg').textContent = '已改角色：' + v.name;
+        return true;
+      });
+      return;
+    }
+    if(op === 'delChar'){
+      if(!confirm('删掉这个角色？')) return;
+      const dd = D();
+      dd.chars = dd.chars.filter(function(x){ return x.id !== id; });
+      save(dd); render();
+      $('as_msg').textContent = '已删角色';
+      return;
+    }
+  });
+
+  $('as_ok').onclick = function(){
+    if(pending && pending() !== false) close();
+  };
+  $('as_cancel').onclick = close;
+  $('as_mask').addEventListener('click', function(e){ if(e.target === this) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
+
+  /* ---------- 顶部换区 ---------- */
+  function refreshTopServers(){
+    const d = D();
+    const sel = $('g_server');
+    if(!sel) return;
+    const cur = (MZ3.read('ui') || {}).curServer;
+    sel.innerHTML = '<option value="">— 选区服 —</option>' + d.servers.map(function(sv){
+      return '<option value="' + sv.id + '">' + esc(sv.name) + '</option>';
+    }).join('');
+    const pick = (cur && d.servers.some(function(x){ return x.id === cur; })) ? cur : (d.servers[0] ? d.servers[0].id : '');
+    sel.value = pick;
+    applyServer(pick);
+  }
+  function applyServer(id){
+    const d = D();
+    const sv = serverOf(d, id);
+    const age = $('g_age');
+    if(age) age.textContent = sv ? ageGroup(sv.openDate) : '—';
+    const p = Number(sv && sv.price) || 0;
+    const gin = $('g_price');
+    if(gin) gin.value = p ? p : '';
+    if(sv){
+      const g = (MZ3.read('global') || {}).gold || {};
+      g.pricePerWan = p;
+      g.serverId = sv.id;
+      g.fee = (g.fee === undefined || g.fee === null) ? 0.05 : g.fee;
+      MZ3.write('global', { gold: g });
+      const u = MZ3.read('ui') || {}; u.curServer = sv.id; MZ3.write('ui', u);
+    }
+    if(window.MZ3PaintGold) { try{ window.MZ3PaintGold(); }catch(e){} }
+    if(window.syCalc) { try{ syCalc(); }catch(e){} }
+  }
+  const gs = $('g_server');
+  if(gs) gs.addEventListener('change', function(){ applyServer(gs.value); });
+
+  window.__assets = { D: D, render: render, refreshTopServers: refreshTopServers, ageGroup: ageGroup, tihuo: tihuo };
+  render();
+  refreshTopServers();
+})();
+</script>
+
 
 <style>
 /* r93 浮窗计算器 */
