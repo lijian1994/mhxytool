@@ -368,8 +368,9 @@ html, body { height:100%; overflow:hidden }
 /* r93 顶部金价栏 */
 .tbar{flex-direction:column;align-items:stretch;gap:7px}
 .tbar .tb-top{display:flex;align-items:center;gap:9px}
-.tbar .tb-gold{display:flex;flex-wrap:wrap;align-items:center;gap:6px 13px;
+.tbar .tb-gold{display:flex;flex-direction:column;gap:5px;
   border-top:1px solid var(--line);padding-top:7px;font-size:12px;color:var(--dim)}
+.tbar .tb-gold .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 13px}
 .tbar .tb-gold .gl{color:#9fb0d8}
 .tbar .tb-gold input{width:92px;text-align:right;background:#0f1320;border:1px solid var(--line);
   border-radius:7px;color:#fff;font-size:12.5px;padding:3px 7px;font-family:inherit}
@@ -542,28 +543,30 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r138</div>
+        <div class="ver">V5.3 · r139</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
       </div>
       <div class="tb-gold">
-        <span class="gl">区服</span>
-        <select id="g_server" title="选一个区服，金价和开服档位自动带出"></select>
-        <span class="gl">金价</span><b id="g_price">—</b><span>元/万两</span>
-        <span class="gl">开服</span><b id="g_age">—</b>
-        <span class="sep"></span>
-        <span class="gl">到手（扣 5%）</span><b id="g_net">—</b><span>元/万两</span>
-        <span class="sep"></span>
-        <span class="q">100 元 = <b id="g_q1">—</b> 万两</span>
-        <span class="q">200 元 = <b id="g_q2">—</b> 万两</span>
-        <span class="q">3000 万两 = <b id="g_q3">—</b> 元（到手 <b id="g_q3b">—</b>）</span>
-        <span class="sep"></span>
-        <span class="gl">换算</span>
-        <input id="g_wan" type="number" min="0" step="any" placeholder="万两">
-        <span>万两 →</span><b id="g_wan_y">—</b><span>元（应挂）</span>
-        <b id="g_wan_net" style="color:#9fb0ff">—</b><span>元（到手）</span>
-      </div>
+        <div class="row">
+          <span class="gl">区服</span>
+          <select id="g_server" title="选一个区服，金价和开服档位自动带出"></select>
+          <span class="gl">金价</span><b id="g_price">—</b><span>元/万两</span>
+          <span class="gl">开服</span><b id="g_age">—</b>
+          <span class="sep"></span>
+          <span class="gl">到手（扣 5%）</span><b id="g_net">—</b><span>元/万两</span>
+        </div>
+        <div class="row">
+          <span class="q">100 元 = <b id="g_q1">—</b> 万两</span>
+          <span class="q">200 元 = <b id="g_q2">—</b> 万两</span>
+          <span class="q">3000 万两 = <b id="g_q3">—</b> 元（到手 <b id="g_q3b">—</b>）</span>
+          <span class="sep"></span>
+          <span class="gl">换算</span>
+          <input id="g_wan" type="number" min="0" step="any" placeholder="万两">
+          <span>万两 →</span><b id="g_wan_y">—</b><span>元（应挂）</span>
+          <b id="g_wan_net" style="color:#9fb0ff">—</b><span>元（到手）</span>
+        </div>
     </div>
 
 <div class="tabs" id="tabs">
