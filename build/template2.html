@@ -542,7 +542,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r135</div>
+        <div class="ver">V5.3 · r136</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -3755,9 +3755,8 @@ setTimeout(fitPanel,300);
       </select>
     </div>
     <div class="f"><span class="lbl">日期</span><input id="lg_date" type="date"></div>
-    <div class="f"><span class="lbl">选角色</span><select id="lg_char_pick" title="从账号资产里选，自动带出区服和金价"><option value="">— 手动填 —</option></select></div>
-    <div class="f"><span class="lbl">区</span><input id="lg_zone" list="lg_zone_list" placeholder="例：上海1区"><datalist id="lg_zone_list"></datalist></div>
-    <div class="f"><span class="lbl">角色</span><input id="lg_char" list="lg_char_list" placeholder="例：北俱小霸王1"><datalist id="lg_char_list"></datalist></div>
+    <div class="f"><span class="lbl">区服</span><select id="lg_server_pick" title="先选区服"><option value="">— 选区服 —</option></select></div>
+    <div class="f"><span class="lbl">角色</span><select id="lg_char_pick" title="再选这个区服下的角色，自动带出金价"><option value="">— 选角色 —</option></select></div>
     <div class="f" id="lg_f_wan"><span class="lbl">数量</span><input id="lg_wan" type="number" min="0" step="any" placeholder="万两"><span class="lbl">万两</span></div>
     <div class="f" id="lg_f_price"><span class="lbl">单价</span><input id="lg_price" type="number" min="0" step="0.0001"><span class="lbl">元/万两</span></div>
     <div class="f" id="lg_f_item"><span class="lbl">物品</span><input id="lg_item" placeholder="例：高级兽诀"></div>
@@ -3855,19 +3854,35 @@ setTimeout(fitPanel,300);
     return (d.months && d.months[cursor]) || [];
   }
 
-  /* 区 / 角色：把历史里出现过的填进 datalist，下次直接选，不用手打 */
-  function fillSuggest(d){
-    const zones = [], chars = [], seenZ = {}, seenC = {};
-    Object.keys(d.months || {}).forEach(function(k){
-      (d.months[k] || []).forEach(function(r){
-        if(r.zone && !seenZ[r.zone]){ seenZ[r.zone] = 1; zones.push(r.zone); }
-        if(r.char && !seenC[r.char]){ seenC[r.char] = 1; chars.push(r.char); }
-      });
-    });
-    const zl = $('lg_zone_list'), cl = $('lg_char_list');
-    if(zl) zl.innerHTML = zones.map(function(z){ return '<option value="' + esc(z) + '">'; }).join('');
-    if(cl) cl.innerHTML = chars.map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
+  /* 区服 / 角色：从账号资产来，先选区服再选角色 */
+  function assetsOf(){
+    try{ return window.__assets ? window.__assets.D() : { servers: [], chars: [], accounts: [] }; }
+    catch(e){ return { servers: [], chars: [], accounts: [] }; }
   }
+  function fillServerPick(){
+    const sel = $('lg_server_pick');
+    if(!sel) return;
+    const d = assetsOf();
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">— 选区服 —</option>' + d.servers.map(function(sv){
+      return '<option value="' + sv.id + '">' + esc(sv.name) + '</option>';
+    }).join('');
+    if(keep) sel.value = keep;
+  }
+  function fillCharPick(){
+    const sel = $('lg_char_pick');
+    if(!sel) return;
+    const d = assetsOf();
+    const sid = ($('lg_server_pick') || {}).value || '';
+    const keep = sel.value;
+    const list = d.chars.filter(function(c){ return !sid || c.serverId === sid; });
+    sel.innerHTML = '<option value="">— 选角色 —</option>' + list.map(function(c){
+      return '<option value="' + c.id + '" data-server="' + c.serverId + '">' + esc(c.name) + '</option>';
+    }).join('');
+    if(keep && list.some(function(c){ return c.id === keep; })) sel.value = keep;
+  }
+  /* 兼容旧调用 */
+  function fillSuggest(){ fillServerPick(); fillCharPick(); }
 
   function render(){
     const d = data();
@@ -3968,19 +3983,19 @@ setTimeout(fitPanel,300);
     const t = $('lg_type').value;
     const d = data();
     const date = $('lg_date').value || today();
-    const zone = ($('lg_zone').value || '').trim();
-    const char = ($('lg_char').value || '').trim();
+    const svSel = $('lg_server_pick');
+    const chSel = $('lg_char_pick');
+    const zone = (svSel && svSel.selectedIndex > 0) ? (svSel.options[svSel.selectedIndex].textContent || '').trim() : '';
+    const char = (chSel && chSel.selectedIndex > 0) ? (chSel.options[chSel.selectedIndex].textContent || '').trim() : '';
     const note = ($('lg_note').value || '').trim();
     const rec = { id: 'l' + Date.now() + Math.floor(Math.random() * 1000), ts: new Date(date + 'T00:00:00').getTime(), date: date, type: t, zone: zone, char: char, note: note };
 
-    const pick = $('lg_char_pick');
-    if(pick && pick.value){
-      const parts = pick.value.split('|');
-      rec.charId = parts[0] || '';
-      rec.serverId = parts[1] || '';
-      const opt = pick.options[pick.selectedIndex];
-      const z = (opt && opt.dataset && opt.dataset.zone) || '';
-      if(z && !rec.zone) rec.zone = z;
+    if(chSel && chSel.value){
+      rec.charId = chSel.value;
+      const opt = chSel.options[chSel.selectedIndex];
+      rec.serverId = (opt && opt.dataset && opt.dataset.server) || (svSel ? svSel.value : '') || '';
+    }else if(svSel && svSel.value){
+      rec.serverId = svSel.value;
     }
 
     if(t === 'coin'){
@@ -4058,36 +4073,31 @@ setTimeout(fitPanel,300);
     render();
   }
 
-  /* 角色下拉：来自账号资产，选中后带出区服名和金价 */
-  function fillCharPick(){
-    const sel = $('lg_char_pick');
-    if(!sel) return;
-    let d = { servers: [], chars: [] };
-    try{ d = window.__assets ? window.__assets.D() : d; }catch(e){}
-    const byName = {};
-    d.servers.forEach(function(sv){ byName[sv.id] = sv; });
-    const keep = sel.value;
-    sel.innerHTML = '<option value="">— 手动填 —</option>' + d.chars.map(function(c){
-      const sv = byName[c.serverId];
-      return '<option value="' + c.id + '|' + c.serverId + '" data-zone="' + (sv ? sv.name : '') + '" data-price="' + (sv ? sv.price : '') + '">'
-        + (sv ? sv.name + ' · ' : '') + c.name + '</option>';
-    }).join('');
-    if(keep) sel.value = keep;
-  }
+  /* 区服切换 -> 重新加载该区角色；角色切换 -> 带出金价 */
+  const srvEl = $('lg_server_pick');
+  if(srvEl) srvEl.addEventListener('change', function(){
+    fillCharPick();
+    const sv = assetsOf().servers.find(function(x){ return x.id === srvEl.value; });
+    if(sv && sv.price) $('lg_price').value = sv.price;
+    calcPreview();
+  });
+
   const pickEl = $('lg_char_pick');
   if(pickEl) pickEl.addEventListener('change', function(){
     const opt = pickEl.options[pickEl.selectedIndex];
     if(!opt || !pickEl.value) return;
-    const zone = opt.dataset.zone || '';
-    const price = opt.dataset.price || '';
-    if(zone) $('lg_zone').value = zone;
-    const nm = (opt.textContent || '').split(' · ');
-    if(nm.length > 1) $('lg_char').value = nm[nm.length - 1];
-    if(price) $('lg_price').value = price;
+    const d = assetsOf();
+    const sid = (opt.dataset && opt.dataset.server) || '';
+    const sv = d.servers.find(function(x){ return x.id === sid; });
+    if(sv){
+      if(srvEl && srvEl.value !== sv.id) srvEl.value = sv.id;
+      if(sv.price) $('lg_price').value = sv.price;
+    }
     calcPreview();
   });
 
-  window.lgFillCharPick = fillCharPick;
+  window.lgFillCharPick = function(){ fillServerPick(); fillCharPick(); };
+  fillServerPick();
   fillCharPick();
 
   window.lgImportJson = importJson;
