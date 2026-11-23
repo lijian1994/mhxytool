@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r142</div>
+        <div class="ver">V5.3 · r143</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -4142,7 +4142,11 @@ setTimeout(fitPanel,300);
 <style>
 #assets .as-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 #assets .as-sec{margin-bottom:16px}
-#assets .as-cap{color:#e8c37a;font-size:12.5px;font-weight:700;margin:0 0 7px}
+#assets .as-cap{display:flex;align-items:center;gap:6px;color:#e8c37a;font-size:12.5px;font-weight:700;margin:0 0 7px;cursor:pointer;user-select:none}
+#assets .as-cap .caret{display:inline-block;transition:transform .15s;font-size:10px;color:#8b96b8}
+#assets .as-sec.collapsed .as-cap .caret{transform:rotate(-90deg)}
+#assets .as-sec.collapsed .as-body{display:none}
+#assets .as-cap .cnt{color:#6f7a99;font-weight:400;font-size:11.5px}
 #assets .as-tab{width:100%;border-collapse:collapse;font-size:12.5px;background:#141a2a}
 #assets .as-tab th{background:#1b2440;color:#8b96b8;font-size:11.5px;font-weight:600;padding:8px 10px;text-align:left;border-bottom:1px solid #26304f}
 #assets .as-tab td{padding:9px 10px;border-bottom:1px solid #232b47;vertical-align:top}
@@ -7010,6 +7014,22 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   function sortedServers(d){
     return d.servers.slice().sort(function(a, b){ return sortKey(b) - sortKey(a); });
   }
+  function collapsed(){ try{ return (MZ3.read('ui') || {}).assetsCollapsed || {}; }catch(e){ return {}; } }
+  function toggleSec(key, on){
+    try{
+      const u = MZ3.read('ui') || {};
+      u.assetsCollapsed = u.assetsCollapsed || {};
+      u.assetsCollapsed[key] = !!on;
+      MZ3.write('ui', u);
+    }catch(e){}
+  }
+
+  function sec(key, title, count, bodyHtml){
+    const off = collapsed()[key] ? ' collapsed' : '';
+    return '<div class="as-sec' + off + '" data-sec="' + key + '">'
+      + '<div class="as-cap"><span class="caret">▾</span>' + title + '<span class="cnt">（' + count + '）</span></div>'
+      + '<div class="as-body">' + bodyHtml + '</div></div>';
+  }
 
   function render(){
     const d = D();
@@ -7021,6 +7041,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     }
     const servers = sortedServers(d);
 
+    /* --- 区服 --- */
     const srvRows = servers.map(function(sv){
       const n = d.chars.filter(function(c){ return c.serverId === sv.id; }).length;
       const days = dayCount(sv.openDate);
@@ -7041,6 +7062,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         + '</div></td></tr>';
     }).join('');
 
+    /* --- 角色 --- */
     const order = {};
     servers.forEach(function(sv, i){ order[sv.id] = i; });
     const chars = d.chars.slice().sort(function(a, b){
@@ -7063,18 +7085,39 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         + '<td><div class="op"><button class="del" data-op="delChar" data-id="' + c.id + '">删</button></div></td></tr>';
     }).join('') : '<tr><td colspan="6" class="empty">还没有角色</td></tr>';
 
-    box.innerHTML =
-      '<div class="as-sec"><div class="as-cap">区服</div>'
-      + '<div class="scroll"><table class="as-tab"><thead><tr>'
+    /* --- 账号：关联区服由角色推导 --- */
+    const accRows = d.accounts.length ? d.accounts.map(function(a){
+      const cs = d.chars.filter(function(c){ return c.accountId === a.id; });
+      const sids = {};
+      cs.forEach(function(c){ if(c.serverId) sids[c.serverId] = 1; });
+      const names = servers.filter(function(sv){ return sids[sv.id]; }).map(function(sv){ return sv.name; });
+      return '<tr>'
+        + '<td><b>' + esc(a.name) + '</b></td>'
+        + '<td class="r">' + cs.length + '</td>'
+        + '<td>' + (names.join('、') || '—') + '</td>'
+        + '<td><div class="op">'
+        + '<button data-op="editAccount" data-id="' + a.id + '">改</button>'
+        + '<button class="del" data-op="delAccount" data-id="' + a.id + '">删</button>'
+        + '</div></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="empty">还没有账号</td></tr>';
+
+    const srvTable = '<table class="as-tab"><thead><tr>'
       + '<th>区服名</th><th class="r" style="width:70px">角色数</th><th style="width:210px">金价</th>'
       + '<th style="width:110px">开服时间</th><th class="r" style="width:90px">开服天数</th>'
       + '<th style="width:110px">档位</th><th style="width:80px">操作</th>'
-      + '</tr></thead><tbody>' + srvRows + '</tbody></table></div></div>'
-      + '<div class="as-sec"><div class="as-cap">角色</div>'
-      + '<div class="scroll"><table class="as-tab"><thead><tr>'
+      + '</tr></thead><tbody>' + srvRows + '</tbody></table>';
+    const charTable = '<table class="as-tab"><thead><tr>'
       + '<th>角色名</th><th class="r" style="width:80px">等级</th><th class="r" style="width:130px">体活上限</th>'
       + '<th style="width:200px">所属账号</th><th style="width:130px">区服</th><th style="width:60px">操作</th>'
-      + '</tr></thead><tbody>' + charRows + '</tbody></table></div></div>';
+      + '</tr></thead><tbody>' + charRows + '</tbody></table>';
+    const accTable = '<table class="as-tab"><thead><tr>'
+      + '<th>账号名</th><th class="r" style="width:80px">角色数</th><th>关联区服（按角色推导）</th><th style="width:80px">操作</th>'
+      + '</tr></thead><tbody>' + accRows + '</tbody></table>';
+
+    box.innerHTML =
+      sec('servers', '区服', servers.length, '<div class="scroll">' + srvTable + '</div>')
+      + sec('chars', '角色', d.chars.length, '<div class="scroll">' + charTable + '</div>')
+      + sec('accounts', '账号', d.accounts.length, '<div class="scroll">' + accTable + '</div>');
   }
 
   /* ---------- 弹层 ---------- */
@@ -7187,6 +7230,16 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     newCharAndEdit(D().servers[0].id);
   };
 
+  /* 折叠：点标题切换，状态记住 */
+  $('as_body').addEventListener('click', function(e){
+    const cap = e.target && e.target.closest ? e.target.closest('.as-cap') : null;
+    if(cap && cap.parentElement && cap.parentElement.dataset.sec){
+      const secEl = cap.parentElement;
+      secEl.classList.toggle('collapsed');
+      toggleSec(secEl.dataset.sec, secEl.classList.contains('collapsed'));
+      return;
+    }
+  });
   $('as_body').addEventListener('click', function(e){
     const nm = e.target && e.target.closest ? e.target.closest('.as-char') : null;
     if(nm){
@@ -7244,6 +7297,33 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         $('as_msg').textContent = '已改角色：' + v.name;
         return true;
       });
+      return;
+    }
+    if(op === 'editAccount'){
+      const ac = accountOf(d, id);
+      if(!ac) return;
+      open('编辑账号', accountForm(ac), function(){
+        const v = readAccountForm();
+        if(!v.name){ $('as_msg').textContent = '账号名不能为空'; return false; }
+        const dd = D(); const x = accountOf(dd, id);
+        x.name = v.name; x.serverIds = v.serverIds;
+        save(dd); render();
+        $('as_msg').textContent = '已改账号：' + v.name;
+        return true;
+      });
+      return;
+    }
+    if(op === 'delAccount'){
+      const used = d.chars.filter(function(c){ return c.accountId === id; }).length;
+      if(used > 0){
+        $('as_msg').textContent = '这个账号下还有 ' + used + ' 个角色，先把角色删掉或改绑才能删账号';
+        return;
+      }
+      if(!confirm('删掉这个账号？')) return;
+      const dd = D();
+      dd.accounts = dd.accounts.filter(function(x){ return x.id !== id; });
+      save(dd); render();
+      $('as_msg').textContent = '已删账号';
       return;
     }
     if(op === 'delChar'){
