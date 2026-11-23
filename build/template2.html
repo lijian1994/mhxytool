@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r143</div>
+        <div class="ver">V5.3 · r144</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -7226,8 +7226,25 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     if(window.jdEnterRoleDraft) window.jdEnterRoleDraft(draft);
   }
   $('as_addChar').onclick = function(){
-    if(!D().servers.length){ $('as_msg').textContent = '先加一个区服'; return; }
-    newCharAndEdit(D().servers[0].id);
+    const d = D();
+    if(!d.servers.length){
+      $('as_msg').textContent = '还没有区服。先点「+ 区服」建一个';
+      return;
+    }
+    /* 角色属于哪个区服由角色自己定，跟账号无关：只有一个区就直接用，多个区让用户选 */
+    if(d.servers.length === 1){ newCharAndEdit(d.servers[0].id); return; }
+    const list = sortedServers(d);
+    open('新建角色 · 先选区服',
+      '<div class="f"><label>区服</label><select id="f_srv_pick">'
+      + list.map(function(sv){ return '<option value="' + sv.id + '">' + esc(sv.name) + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div class="f"><span class="hint">角色的区服是角色自己的属性；账号可选、可跨区服，不会反过来决定角色的区服。</span></div>',
+      function(){
+        const sid = $('f_srv_pick').value;
+        if(!sid){ $('as_msg').textContent = '先选区服'; return false; }
+        newCharAndEdit(sid);
+        return true;
+      });
   };
 
   /* 折叠：点标题切换，状态记住 */
@@ -7502,7 +7519,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     load(draft.build || {});
     renderBar();
     if(window.showTab) showTab('jiadian');
-    $('jd_msg').textContent = '新角色：填好后点「保存角色」';
+    $('jd_msg').textContent = '区服：' + (window.__jdRole.serverName || '—') + ' · 填好后点「保存角色」';
   };
 
   window.jdCollectRole = collect;
