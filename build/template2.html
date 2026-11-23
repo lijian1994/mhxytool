@@ -536,7 +536,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r131</div>
+        <div class="ver">V5.3 · r132</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -544,9 +544,7 @@ window.MZ3 = (function(){
       <div class="tb-gold">
         <span class="gl">区服</span>
         <select id="g_server" title="选一个区服，金价和开服档位自动带出"></select>
-        <span class="gl">金价</span>
-        <input id="g_price" type="number" min="0" step="0.0001" readonly title="来自所选区服，去「账号资产」里改" style="width:88px">
-        <span>元/万两</span>
+        <span class="gl">金价</span><b id="g_price">—</b><span>元/万两</span>
         <span class="gl">开服</span><b id="g_age">—</b>
         <span class="sep"></span>
         <span class="gl">到手（扣 5%）</span><b id="g_net">—</b><span>元/万两</span>
@@ -2225,6 +2223,13 @@ window.MZ3 = (function(){
  font-family:inherit;color:#cdd6f4;background:#232b47}#jiadian .f input:focus{outline:none;border-color:#5fb3c0;box-shadow:0 0 0 3px rgba(232,195,122,.18)}#jiadian .none{color:#6f7ba3;font-size:11.5px}#jiadian .eq-tip{margin-top:12px;font-size:11px;color:#8b96b8;line-height:1.8}#jiadian .skh{display:flex;flex-wrap:wrap;gap:10px 20px}#jiadian .skh label{display:flex;align-items:center;gap:5px;grid-template-columns:none}#jiadian .frow{display:flex;flex-wrap:wrap;gap:8px 2px;margin-bottom:2px}#jiadian .frow label{display:inline-flex;align-items:center;gap:3px;font-size:12.5px;color:#8b96b8;width:auto}#jiadian .frow input{width:40px;height:25px;border:1px solid #3d486e;border-radius:6px;text-align:center;font-size:13px;font-family:inherit;color:#cdd6f4;background:#232b47}#jiadian .frow input:focus{outline:none;border-color:#5fb3c0;box-shadow:0 0 0 3px rgba(232,195,122,.18)}#jiadian .fwrap{display:flex;flex-direction:column;gap:12px}#jiadian .fcol{flex:0 0 auto;min-width:0}#jiadian .flist{display:flex;flex-wrap:wrap;gap:10px 22px}#jiadian .flist label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#8b96b8}#jiadian .flist input{width:58px;height:25px;border:1px solid #3d486e;border-radius:6px;text-align:center;font-size:13px;font-family:inherit;color:#cdd6f4;background:#232b47}#jiadian .flist input:focus{outline:none;border-color:#5fb3c0;box-shadow:0 0 0 3px rgba(232,195,122,.18)}#jiadian .sk-sub{grid-column:1 / -1;margin:8px 0 2px;font-size:12px;color:#8b96b8;font-weight:600;border-bottom:1px dashed #dbe9ee;padding-bottom:2px}</style>
 <div class="tabs"><div class="tab on">模拟属性</div><div class="tab">开启对比</div>
   <div class="tools"><button id="mz-save">保存</button><button id="mz-clear" class="warn">清空</button></div></div>
+<div class="jd-edit" id="jd_edit" hidden>
+  <b>正在编辑角色</b>
+  <input id="jd_char_name" placeholder="角色名" style="width:150px">
+  <button class="btn" id="jd_save_role">保存角色</button>
+  <button class="btn gray" id="jd_exit_role">退出编辑</button>
+  <span class="jd-note" id="jd_msg"></span>
+</div>
 <div class="layout">
   <div class="col left">
     <div class="card"><div class="card-t">辅助技能</div><div class="skills"><label><span>强身术</span><input id='qs' type='number' min='0' max='160' value='0'><em>级</em></label><label><span>冥想</span><input id='mx' type='number' min='0' max='160' value='0'><em>级</em></label><label><span>强壮</span><input id='qz' type='number' min='0' max='160' value='0'><em>级</em></label><label><span>神速</span><input id='ss' type='number' min='0' max='160' value='0'><em>级</em></label><label><span>养生之道</span><input id='shengyang' type='number' min='0' max='160' value='0'><em>级</em></label><label><span>健身术</span><input id='jianshen' type='number' min='0' max='160' value='0'><em>级</em></label></div><div id="tl-info"></div></div>
@@ -6858,7 +6863,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     const p = num(g.pricePerWan);
     const net = p * (1 - FEE);
     const box = el('g_price');
-    if(box && document.activeElement !== box) box.value = p ? p : '';
+    if(box) box.textContent = p ? p.toFixed(4) : '—';
     el('g_net').textContent = net ? net.toFixed(4) : '—';
     el('g_q1').textContent = p ? (100 / p).toFixed(0) : '—';
     el('g_q2').textContent = p ? (200 / p).toFixed(0) : '—';
@@ -6874,10 +6879,8 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     g.fee = FEE;
     MZ3.write('global', { gold: g });
   }
-  const box = el('g_price');
-  if(box){
-    box.addEventListener('input', function(){ savePrice(box.value); paint(); if(window.syCalc) syCalc(); });
-  }
+  /* 金价只能从「账号资产」改区服、或记账时改浮动价，顶栏不再接收输入 */
+  window.saveGoldPrice = savePrice;
   const wan = el('g_wan');
   if(wan) wan.addEventListener('input', paint);
   window.MZ3PaintGold = paint;
@@ -6920,7 +6923,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   /* 体活上限：50 + 等级×5 + 养生/健身×4 */
   function tihuo(build){
     const lv = Number(build && build.level) || 0;
-    const ys = Number(build && build.skills && build.skills.yangsheng) || 0;
+    const ys = Number(build && build.skills && build.skills.shengyang) || 0;
     const js = Number(build && build.skills && build.skills.jianshen) || 0;
     return { hl: 50 + lv * 5 + ys * 4, tl: 50 + lv * 5 + js * 4 };
   }
@@ -6941,7 +6944,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         const th = tihuo(c.build);
         const lv = (c.build && c.build.level) || '';
         return '<tr>'
-          + '<td><b>' + esc(c.name) + '</b></td>'
+          + '<td><b class="as-char" data-id="' + c.id + '" style="cursor:pointer" title="点开去模拟加点里改">' + esc(c.name) + '</b></td>'
           + '<td class="r">' + (lv || '—') + '</td>'
           + '<td class="r">' + (th.hl || '—') + ' / ' + (th.tl || '—') + '</td>'
           + '<td>' + esc(acc ? acc.name : '未绑定') + '</td>'
@@ -6951,15 +6954,11 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
           + '</div></td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">这个区还没有角色</td></tr>';
 
-      const accNames = d.accounts.filter(function(a){ return (a.serverIds || []).indexOf(sv.id) >= 0; })
-        .map(function(a){ return a.name; }).join('、');
-
       return '<div class="srv">'
         + '<div class="srv-hd">'
         + '<b>' + esc(sv.name) + '</b>'
         + '<span class="meta">金价 ' + (sv.price ? f2(sv.price) : '—') + ' 元/万两</span>'
         + '<span class="meta">开服 ' + (sv.openDate || '—') + ' · ' + ageGroup(sv.openDate) + '</span>'
-        + '<span class="meta">账号 ' + (accNames || '—') + '</span>'
         + '<span class="sp"></span>'
         + '<span class="op">'
         + '<button data-op="addChar" data-id="' + sv.id + '">+ 角色</button>'
@@ -7009,7 +7008,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       + d.accounts.map(function(a){ return '<option value="' + a.id + '"' + (c.accountId === a.id ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('')
       + '</select></div>'
       + '<div class="f"><label>等级</label><input id="f_level" type="number" min="0" max="175" value="' + (b.level || '') + '"></div>'
-      + '<div class="f"><label>养生</label><input id="f_ys" type="number" min="0" value="' + (sk.yangsheng || '') + '"></div>'
+      + '<div class="f"><label>养生</label><input id="f_ys" type="number" min="0" value="' + (sk.shengyang || '') + '"></div>'
       + '<div class="f"><label>健身</label><input id="f_js" type="number" min="0" value="' + (sk.jianshen || '') + '"></div>'
       + '<div class="f"><span class="hint">体活上限 = 50 + 等级×5 + 养生/健身×4</span></div>';
   }
@@ -7035,7 +7034,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       accountId: $('f_account').value,
       build: {
         level: Number($('f_level').value) || 0,
-        skills: { yangsheng: Number($('f_ys').value) || 0, jianshen: Number($('f_js').value) || 0 }
+        skills: { shengyang: Number($('f_ys').value) || 0, jianshen: Number($('f_js').value) || 0 }
       }
     };
   }
@@ -7064,35 +7063,33 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       return true;
     });
   };
+  /* 新增角色：不弹表单，直接建一个空角色，跳到模拟加点里填 */
+  function newCharAndEdit(serverId){
+    const d = D();
+    const c = { id: nid(d, 'c'), name: '新角色', serverId: serverId || d.servers[0].id, accountId: '', build: {} };
+    d.chars.push(c);
+    save(d); render();
+    $('as_msg').textContent = '已建角色，去模拟加点里填属性，填完点保存';
+    if(window.jdEnterRole) window.jdEnterRole(c.id);
+  }
   $('as_addChar').onclick = function(){
     if(!D().servers.length){ $('as_msg').textContent = '先加一个区服'; return; }
-    open('新增角色', charForm(null, D().servers[0].id), function(){
-      const v = readCharForm();
-      if(!v.name){ $('as_msg').textContent = '角色名不能为空'; return false; }
-      const d = D();
-      d.chars.push({ id: nid(d, 'c'), name: v.name, serverId: v.serverId, accountId: v.accountId, build: v.build });
-      save(d); render();
-      $('as_msg').textContent = '已加角色：' + v.name;
-      return true;
-    });
+    newCharAndEdit(D().servers[0].id);
   };
 
   $('as_body').addEventListener('click', function(e){
+    const nm = e.target && e.target.closest ? e.target.closest('.as-char') : null;
+    if(nm){
+      if(window.jdEnterRole) window.jdEnterRole(nm.dataset.id);
+      return;
+    }
     const btn = e.target && e.target.closest ? e.target.closest('button[data-op]') : null;
     if(!btn) return;
     const op = btn.dataset.op, id = btn.dataset.id;
     const d = D();
 
     if(op === 'addChar'){
-      open('新增角色', charForm(null, id), function(){
-        const v = readCharForm();
-        if(!v.name){ $('as_msg').textContent = '角色名不能为空'; return false; }
-        const dd = D();
-        dd.chars.push({ id: nid(dd, 'c'), name: v.name, serverId: v.serverId || id, accountId: v.accountId, build: v.build });
-        save(dd); render();
-        $('as_msg').textContent = '已加角色：' + v.name;
-        return true;
-      });
+      newCharAndEdit(id);
       return;
     }
     if(op === 'editServer'){
@@ -7170,7 +7167,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     if(age) age.textContent = sv ? ageGroup(sv.openDate) : '—';
     const p = Number(sv && sv.price) || 0;
     const gin = $('g_price');
-    if(gin) gin.value = p ? p : '';
+    if(gin) gin.textContent = p ? p.toFixed(4) : '—';
     if(sv){
       const g = (MZ3.read('global') || {}).gold || {};
       g.pricePerWan = p;
@@ -7186,10 +7183,139 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   if(gs) gs.addEventListener('change', function(){ applyServer(gs.value); });
 
   window.__assets = { D: D, render: render, refreshTopServers: refreshTopServers, ageGroup: ageGroup, tihuo: tihuo };
+  window.__assetsChars = function(){ return D().chars; };
   render();
   refreshTopServers();
 })();
 </script>
+
+<script>
+/* ===== 模拟加点 × 角色（r132）===== */
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function pel(name){ return document.querySelector("#p0 [name='" + name + "']"); }
+  function num(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+
+  /* 收集当前面板上的加点方案 */
+  function collect(){
+    const skills = {};
+    ['qs','mx','qz','ss','shengyang','jianshen'].forEach(function(id){
+      const el = $(id); if(el) skills[id] = num(el.value);
+    });
+    document.querySelectorAll('#skbox input').forEach(function(el){
+      skills['sk_' + (el.dataset.k || el.name || el.id || '')] = num(el.value);
+    });
+    const mount = {};
+    ['mt_tizhi','mt_moli','mt_liliang','mt_naili','mt_minjie'].forEach(function(id){
+      const el = $(id); if(el) mount[id.replace('mt_','')] = num(el.value);
+    });
+    const equip = {};
+    document.querySelectorAll('.eq').forEach(function(el, i){
+      const k = el.dataset.a || el.dataset.t || ('e' + i);
+      equip[k] = num(el.value);
+    });
+    return {
+      level: num(pel('jibie') && pel('jibie').value),
+      menpai: (pel('menpai') && pel('menpai').value) || '',
+      name: (pel('mingcheng') && pel('mingcheng').value) || '',
+      skills: skills, mount: mount, equip: equip
+    };
+  }
+
+  /* 把方案灌回面板 */
+  function load(b){
+    b = b || {};
+    const sk = b.skills || {};
+    ['qs','mx','qz','ss','shengyang','jianshen'].forEach(function(id){
+      const el = $(id); if(el) el.value = sk[id] != null ? sk[id] : 0;
+      if(el) el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    document.querySelectorAll('#skbox input').forEach(function(el){
+      const k = 'sk_' + (el.dataset.k || el.name || el.id || '');
+      if(sk[k] != null){ el.value = sk[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+    const mt = b.mount || {};
+    ['mt_tizhi','mt_moli','mt_liliang','mt_naili','mt_minjie'].forEach(function(id){
+      const el = $(id); if(!el) return;
+      const k = id.replace('mt_','');
+      el.value = mt[k] != null ? mt[k] : '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const eq = b.equip || {};
+    document.querySelectorAll('.eq').forEach(function(el, i){
+      const k = el.dataset.a || el.dataset.t || ('e' + i);
+      if(eq[k] != null){ el.value = eq[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+    const jb = pel('jibie'); if(jb){ jb.value = b.level || ''; jb.dispatchEvent(new Event('input', { bubbles: true })); }
+    const mc = pel('mingcheng'); if(mc) mc.value = b.name || '';
+    const mp = pel('menpai'); if(mp && b.menpai){ mp.value = b.menpai; mp.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+
+  function renderBar(){
+    const bar = $('jd_edit');
+    if(!bar) return;
+    const r = window.__jdRole;
+    bar.hidden = !r;
+    if(!r) return;
+    $('jd_char_name').value = r.name || '';
+    $('jd_msg').textContent = r.serverName ? ('区服：' + r.serverName) : '';
+  }
+
+  /* 从账号资产进入编辑 */
+  window.jdEnterRole = function(charId){
+    let d = { servers: [], chars: [] };
+    try{ d = window.__assets ? window.__assets.D() : d; }catch(e){}
+    const c = d.chars.find(function(x){ return x.id === charId; });
+    if(!c) return false;
+    const sv = d.servers.find(function(x){ return x.id === c.serverId; });
+    window.__jdRole = { id: c.id, name: c.name, serverId: c.serverId, serverName: sv ? sv.name : '' };
+    load(c.build || {});
+    renderBar();
+    if(window.showTab) showTab('jiadian');
+    return true;
+  };
+
+  window.jdCollectRole = collect;
+
+  $('jd_save_role').onclick = function(){
+    const r = window.__jdRole;
+    if(!r){ $('jd_msg').textContent = '没有正在编辑的角色'; return; }
+    const d = window.__assets.D();
+    const c = d.chars.find(function(x){ return x.id === r.id; });
+    if(!c){ $('jd_msg').textContent = '角色不存在了'; return; }
+    const b = collect();
+    const nm = ($('jd_char_name').value || '').trim();
+    if(nm) c.name = nm;
+    const oldLevel = (c.build && c.build.level) || 0;
+    c.build = b;
+    /* 同步等级到账号资产表格 */
+    if(!b.name) b.name = c.name;
+    MZ3.write('assets', d);
+    r.name = c.name;
+    try{ window.__assets.refreshTopServers(); window.__assets.render(); }catch(e){}
+    $('jd_msg').textContent = '已保存：' + c.name + '（' + (b.level || 0) + ' 级）';
+  };
+
+  $('jd_exit_role').onclick = function(){
+    window.__jdRole = null;
+    renderBar();
+    if(window.showTab) showTab('assets');
+    try{ window.__assets.render(); }catch(e){}
+  };
+
+  /* 切页时刷新编辑条 */
+  const _show = window.showTab;
+  if(typeof _show === 'function'){
+    window.showTab = function(t){
+      const r = _show.apply(this, arguments);
+      try{ renderBar(); }catch(e){}
+      return r;
+    };
+  }
+  renderBar();
+})();
+</script>
+
 
 
 <style>
