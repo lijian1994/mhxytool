@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r140</div>
+        <div class="ver">V5.3 · r141</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -5864,7 +5864,36 @@ function jReset(){
   var q=document.getElementById('j_ql'); if(q) q.value=lv*5+5;
   jCalc();
 }
-document.querySelectorAll('#tabs button').forEach(b=>{ b.onclick = () => showTab(b.dataset.t); });
+/* r141 标签栏：只在打开页面时按使用频率排一次，使用过程中只记次数不重排 */
+(function(){
+  function readUsage(){
+    try{ var u = MZ3.read('ui') || {}; return u.tabUsage || {}; }catch(e){ return {}; }
+  }
+  window.__tabHit = function(t){
+    try{
+      var u = MZ3.read('ui') || {};
+      u.tabUsage = u.tabUsage || {};
+      u.tabUsage[t] = (u.tabUsage[t] || 0) + 1;
+      MZ3.write('ui', u);
+    }catch(e){}
+  };
+  function sortNow(){
+    var box = document.getElementById('tabs');
+    if(!box) return;
+    var usage = readUsage();
+    var btns = Array.prototype.slice.call(box.children).filter(function(b){ return b && b.dataset && b.dataset.t; });
+    var base = {};
+    btns.forEach(function(b, i){ base[b.dataset.t] = i; });
+    btns.sort(function(a, b){
+      var ua = usage[a.dataset.t] || 0, ub = usage[b.dataset.t] || 0;
+      if(ua !== ub) return ub - ua;
+      return base[a.dataset.t] - base[b.dataset.t];
+    });
+    btns.forEach(function(b){ box.appendChild(b); });
+  }
+  sortNow();
+})();
+document.querySelectorAll('#tabs button').forEach(b=>{ b.onclick = () => { if(window.__tabHit) window.__tabHit(b.dataset.t); showTab(b.dataset.t); }; });
 showTab(window.__BOOT_TAB || (location.hash||'#renwu').replace('#','') || 'renwu');
 /* 压住锚点滚动（这页是 body 在滚，window.scrollTo 不够） */
 function __top(){ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; }
