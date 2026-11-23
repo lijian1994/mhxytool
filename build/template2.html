@@ -543,7 +543,7 @@ window.MZ3 = (function(){
         <div class="ico">建</div>
         <div><b>小建哥的工具箱</b> <span>· 单机版</span></div>
         <div class="sp"></div>
-        <div class="ver">V5.3 · r145</div>
+        <div class="ver">V5.3 · r146</div>
         <button class="btn gray" id="annoBtn" title="标注模式：点页面任意位置，写一句直接转成待办任务">✏️ 标注</button>
         <button class="btn gray" id="calcBtn" style="padding:4px 11px;font-size:12px;margin-left:2px">🧮 计算器</button>
         <div class="dots"><i></i><i></i><i></i></div>
@@ -7139,12 +7139,8 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
   }
   function accountForm(ac){
     ac = ac || {};
-    const d = D();
     return '<div class="f"><label>账号名</label><input id="f_name" value="' + esc(ac.name || '') + '" placeholder="例：主号"></div>'
-      + '<div class="f"><label>关联区服</label><select id="f_servers" multiple size="' + Math.min(6, Math.max(2, d.servers.length)) + '">'
-      + d.servers.map(function(sv){ return '<option value="' + sv.id + '"' + ((ac.serverIds || []).indexOf(sv.id) >= 0 ? ' selected' : '') + '>' + esc(sv.name) + '</option>'; }).join('')
-      + '</select></div>'
-      + '<div class="f"><span class="hint">可多选（按住 Ctrl）。账号和区服是关联关系，不是归属：一个账号可以在多个区服有角色，一个区服也可以有多个账号。真正的关联由「角色」上的区服+账号决定。</span></div>';
+      + '<div class="f"><span class="hint">账号独立存在，可以没有任何角色，也不绑定区服；它关联了哪些区服，由这个账号下的角色推导出来。</span></div>';
   }
   function charForm(c, serverId){
     c = c || {};
@@ -7172,11 +7168,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     };
   }
   function readAccountForm(){
-    const sel = $('f_servers');
-    return {
-      name: ($('f_name').value || '').trim(),
-      serverIds: Array.prototype.slice.call(sel.selectedOptions).map(function(o){ return o.value; })
-    };
+    return { name: ($('f_name').value || '').trim() };
   }
   function readCharForm(){
     return {
@@ -7211,17 +7203,17 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       const v = readAccountForm();
       if(!v.name){ $('as_msg').textContent = '账号名不能为空'; return false; }
       const d = D();
-      d.accounts.push({ id: nid(d, 'a'), name: v.name, serverIds: v.serverIds });
+      d.accounts.push({ id: nid(d, 'a'), name: v.name });
       save(d); render();
       $('as_msg').textContent = '已加账号：' + v.name;
       return true;
     });
   };
   /* 新增角色：不弹表单，直接建一个空角色，跳到模拟加点里填 */
-  function newCharAndEdit(serverId){
+  function newCharAndEdit(serverId, accountId){
     const d = D();
     const sv = serverOf(d, serverId || (d.servers[0] || {}).id);
-    const draft = { id: 'draft' + Date.now(), name: '新角色', serverId: sv ? sv.id : '', accountId: '', build: {}, __draft: true };
+    const draft = { id: 'draft' + Date.now(), name: '新角色', serverId: sv ? sv.id : '', accountId: accountId || '', build: {}, __draft: true };
     $('as_msg').textContent = '在模拟加点里填好，点「保存角色」才会真正存下来';
     if(window.jdEnterRoleDraft) window.jdEnterRoleDraft(draft);
   }
@@ -7231,18 +7223,20 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
       $('as_msg').textContent = '还没有区服。先点「+ 区服」建一个';
       return;
     }
-    /* 角色属于哪个区服由角色自己定，跟账号无关：只有一个区就直接用，多个区让用户选 */
-    if(d.servers.length === 1){ newCharAndEdit(d.servers[0].id); return; }
     const list = sortedServers(d);
-    open('新建角色 · 先选区服',
-      '<div class="f"><label>区服</label><select id="f_srv_pick">'
-      + list.map(function(sv){ return '<option value="' + sv.id + '">' + esc(sv.name) + '</option>'; }).join('')
-      + '</select></div>'
-      + '<div class="f"><span class="hint">角色的区服是角色自己的属性；账号可选、可跨区服，不会反过来决定角色的区服。</span></div>',
+    const accOpts = '<option value="">未绑定</option>' + d.accounts.map(function(a){
+      return '<option value="' + a.id + '">' + esc(a.name) + '</option>';
+    }).join('');
+    const srvOpts = list.map(function(sv){ return '<option value="' + sv.id + '">' + esc(sv.name) + '</option>'; }).join('');
+    open('新建角色 · 选账号和区服',
+      '<div class="f"><label>所属账号</label><select id="f_acc_pick">' + accOpts + '</select></div>'
+      + '<div class="f"><label>所属区服</label><select id="f_srv_pick">' + srvOpts + '</select></div>'
+      + '<div class="f"><span class="hint">账号可以选「未绑定」，进模拟加点后还能改；区服必须选，它决定这个角色属于哪个区。</span></div>',
       function(){
         const sid = $('f_srv_pick').value;
+        const aid = $('f_acc_pick').value;
         if(!sid){ $('as_msg').textContent = '先选区服'; return false; }
-        newCharAndEdit(sid);
+        newCharAndEdit(sid, aid);
         return true;
       });
   };
@@ -7323,7 +7317,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
         const v = readAccountForm();
         if(!v.name){ $('as_msg').textContent = '账号名不能为空'; return false; }
         const dd = D(); const x = accountOf(dd, id);
-        x.name = v.name; x.serverIds = v.serverIds;
+        x.name = v.name; delete x.serverIds;
         save(dd); render();
         $('as_msg').textContent = '已改账号：' + v.name;
         return true;
@@ -7518,7 +7512,7 @@ setTimeout(function(){ try{ document.body.classList.add('app-ready'); }catch(e){
     try{ d = window.__assets ? window.__assets.D() : d; }catch(e){}
     const sv = (d.servers || []).find(function(x){ return x.id === draft.serverId; });
     window.__jdRole = {
-      id: draft.id, name: draft.name, serverId: draft.serverId, accountId: '', serverName: sv ? sv.name : '',
+      id: draft.id, name: draft.name, serverId: draft.serverId, accountId: draft.accountId || '', serverName: sv ? sv.name : '',
       draft: draft, saved: false
     };
     load(draft.build || {});
